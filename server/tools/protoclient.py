@@ -243,7 +243,7 @@ def skills_test(host, port, user, password, slot):
     m, lengths, name, (x, y) = enter_map(host, port, user, password, slot)
     drain(m, lengths, 1)
     say(m, name, '@spawn 1101 1 %d %d' % (x + 1, y))
-    say(m, name, '@spawn 1001 1 %d %d' % (x + 2, y))
+    say(m, name, '@spawn 1010 1 %d %d' % (x + 2, y))
     drain(m, lengths, 1)
     for skill, direction, wait in (('scythe', 'right', 1.0),
                                    ('gust', 'right', 1.0),

@@ -1,3 +1,16 @@
 <?xml version="1.0"?>
+<!-- Ids are server monster ids minus 1002, as the client expects. -->
 <monsters>
+ <monster id="8" name="Gust Hopper" targetCursor="small">
+  <sprite>gust-hopper.xml</sprite>
+ </monster>
+ <monster id="99" name="Meadow Grass" targetCursor="small">
+  <sprite>plant-grass.xml</sprite>
+ </monster>
+ <monster id="100" name="Wild Herb" targetCursor="small">
+  <sprite>plant-herb.xml</sprite>
+ </monster>
+ <monster id="101" name="Windflower" targetCursor="small">
+  <sprite>plant-flower.xml</sprite>
+ </monster>
 </monsters>

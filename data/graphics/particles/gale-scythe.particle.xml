@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<effect>
+ <particle position-z="8" lifetime="6">
+  <emitter>
+   <property name="image" value="graphics/particles/leaf.png"/>
+   <property name="output" value="10"/>
+   <property name="horizontal-angle" min="0" max="360"/>
+   <property name="vertical-angle" min="0" max="30"/>
+   <property name="power" min="1" max="2"/>
+   <property name="gravity" value="0"/>
+   <property name="lifetime" min="30" max="60"/>
+   <property name="fade-out" value="20"/>
+  </emitter>
+ </particle>
+</effect>

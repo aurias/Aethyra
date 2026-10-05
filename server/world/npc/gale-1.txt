@@ -44,5 +44,5 @@ L_Close:
 gale-1,20,21,17,6|monster|Meadow Grass|1101,22,20000ms,10000ms
 gale-1,20,4,17,3|monster|Wild Herb|1102,7,30000ms,15000ms
 gale-1,31,21,6,6|monster|Windflower|1103,6,30000ms,15000ms
-gale-1,29,19,8,7|monster|Gust Hopper|1001,4,30000ms,15000ms
-gale-1,28,4,9,3|monster|Gust Hopper|1001,2,30000ms,15000ms
+gale-1,29,19,8,7|monster|Gust Hopper|1010,4,30000ms,15000ms
+gale-1,28,4,9,3|monster|Gust Hopper|1010,2,30000ms,15000ms

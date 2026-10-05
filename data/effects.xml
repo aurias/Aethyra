@@ -1,3 +1,7 @@
 <?xml version="1.0"?>
+<!-- Ids match the effect numbers the server sends for hue skills. -->
 <being-effects>
+ <effect id="900" particle="graphics/particles/gale-dash.particle.xml"/>
+ <effect id="901" particle="graphics/particles/gale-gust.particle.xml"/>
+ <effect id="902" particle="graphics/particles/gale-scythe.particle.xml"/>
 </being-effects>

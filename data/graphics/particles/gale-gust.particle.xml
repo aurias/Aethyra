@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<effect>
+ <particle position-z="16" lifetime="6">
+  <emitter>
+   <property name="image" value="graphics/particles/wind-puff.png"/>
+   <property name="output" value="14"/>
+   <property name="horizontal-angle" min="0" max="360"/>
+   <property name="vertical-angle" min="0" max="5"/>
+   <property name="power" min="2.5" max="3.5"/>
+   <property name="gravity" value="0"/>
+   <property name="lifetime" min="25" max="40"/>
+   <property name="fade-out" value="20"/>
+  </emitter>
+ </particle>
+</effect>

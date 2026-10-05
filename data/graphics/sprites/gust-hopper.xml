@@ -1,0 +1,86 @@
+<?xml version="1.0"?>
+<sprite>
+ <imageset name="base" src="graphics/sprites/gust-hopper.png" width="64" height="64"/>
+ <action name="stand" imageset="base">
+  <animation direction="down">
+   <frame index="0"/>
+  </animation>
+  <animation direction="left">
+   <frame index="3"/>
+  </animation>
+  <animation direction="up">
+   <frame index="6"/>
+  </animation>
+  <animation direction="right">
+   <frame index="9"/>
+  </animation>
+ </action>
+ <action name="walk" imageset="base">
+  <animation direction="down">
+   <frame index="1" delay="120"/>
+   <frame index="0" delay="120"/>
+   <frame index="2" delay="120"/>
+   <frame index="0" delay="120"/>
+  </animation>
+  <animation direction="left">
+   <frame index="4" delay="120"/>
+   <frame index="3" delay="120"/>
+   <frame index="5" delay="120"/>
+   <frame index="3" delay="120"/>
+  </animation>
+  <animation direction="up">
+   <frame index="7" delay="120"/>
+   <frame index="6" delay="120"/>
+   <frame index="8" delay="120"/>
+   <frame index="6" delay="120"/>
+  </animation>
+  <animation direction="right">
+   <frame index="10" delay="120"/>
+   <frame index="9" delay="120"/>
+   <frame index="11" delay="120"/>
+   <frame index="9" delay="120"/>
+  </animation>
+ </action>
+ <action name="attack" imageset="base">
+  <animation direction="down">
+   <frame index="0"/>
+  </animation>
+  <animation direction="left">
+   <frame index="3"/>
+  </animation>
+  <animation direction="up">
+   <frame index="6"/>
+  </animation>
+  <animation direction="right">
+   <frame index="9"/>
+  </animation>
+ </action>
+ <action name="dead" imageset="base">
+  <animation direction="down">
+   <frame index="0"/>
+  </animation>
+  <animation direction="left">
+   <frame index="3"/>
+  </animation>
+  <animation direction="up">
+   <frame index="6"/>
+  </animation>
+  <animation direction="right">
+   <frame index="9"/>
+  </animation>
+ </action>
+ <action name="hurt" imageset="base">
+  <animation direction="down">
+   <frame index="0"/>
+  </animation>
+  <animation direction="left">
+   <frame index="3"/>
+  </animation>
+  <animation direction="up">
+   <frame index="6"/>
+  </animation>
+  <animation direction="right">
+   <frame index="9"/>
+  </animation>
+ </action>
+</sprite>

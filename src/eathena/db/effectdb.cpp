@@ -41,7 +41,7 @@ namespace
 
 void EffectDB::load()
 {
-    if (!mLoaded)
+    if (mLoaded)
         return;
     
     const XML::Document doc("effects.xml");

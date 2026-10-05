@@ -7,5 +7,17 @@
  </item>
  <item id="701" image="breeze-reed.png" name="Breeze Reed" type="generic"
        weight="1" description="A hollow meadow reed. Wind lingers inside it."
-       effect="Natural Gale vessel (placeholder)"/>
+       effect="Natural Gale vessel (not yet usable)"/>
+ <item id="702" image="grass-fiber.png" name="Grass Fiber" type="generic"
+       weight="1" description="Tough meadow grass, cut clean by the wind."/>
+ <item id="703" image="meadow-herb.png" name="Meadow Herb" type="usable"
+       weight="1" description="A bitter terrace herb." effect="Heals 20 HP"/>
+ <item id="704" image="windflower-petal.png" name="Windflower Petal"
+       type="usable" weight="1" description="It trembles even in still air."
+       effect="Restores 20 Gale energy"/>
+ <item id="705" image="hopper-feather.png" name="Hopper Feather"
+       type="generic" weight="1" description="Shed by a Gust Hopper."/>
+ <item id="710" image="gale-tonic.png" name="Gale Tonic" type="usable"
+       weight="2" description="Brewed by the Windkeeper from herbs and petals."
+       effect="Heals 60 HP and restores 60 Gale energy"/>
 </items>
