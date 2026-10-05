@@ -17,7 +17,7 @@ aethyra --data ./data -U aethyra-test -P test-pass -u -D   # with host 127.0.0.1
 | Path | Contents |
 |---|---|
 | `conf/` | Service configuration. `tmwa-{login,char,map}.conf` are the entry points. |
-| `save/` | Accounts and characters. `account.txt` holds the internal server account and a test account (`aethyra-test` / `test-pass`). |
+| `save/` | Accounts and characters. `account.txt` holds a test account (`aethyra-test` / `test-pass`). |
 | `data/` | Server walk maps (`.wlk`) generated from the client maps with `tools/tmx2wlk.py`. |
 | `db/` | Items, monsters, skills and script constants. |
 | `npc/` | NPC scripts. |
@@ -25,5 +25,6 @@ aethyra --data ./data -U aethyra-test -P test-pass -u -D   # with host 127.0.0.1
 New accounts can register by logging in with `_M` or `_F` appended to the
 user name (`new_account` is on).
 
-The internal account password (`change-me-char`) only guards the loopback
-link between services. Hosted worlds will generate their own.
+The services authenticate to each other with `userid`/`passwd` from the
+conf files (`change-me-char` here). That only guards their loopback link;
+worlds hosted from the client get a random password of their own.

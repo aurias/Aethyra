@@ -53,6 +53,7 @@ struct Options
     std::string configPath;
     std::string updateHost;
     std::string dataPath;
+    std::string hostWorld;   /**< World to host locally before logging in. */
 };
 
 extern Options options;

@@ -21,6 +21,7 @@
 
 #include "game.h"
 #include "statemanager.h"
+#include "worldhost.h"
 
 #include "db/colordb.h"
 #include "db/effectdb.h"
@@ -191,6 +192,22 @@ StateManager::StateManager() :
 
     SDLNet_Init();
     network = new Network();
+
+    if (!options.hostWorld.empty())
+    {
+        std::string error;
+        if (WorldHost::start(options.hostWorld, error))
+        {
+            loginData.hostname = "127.0.0.1";
+            loginData.port = WorldHost::PORT;
+        }
+        else
+        {
+            logger->log("Could not host world %s: %s",
+                        options.hostWorld.c_str(), error.c_str());
+            new OkDialog(_("Could not host world"), error);
+        }
+    }
 
     setState(START_STATE);
 }

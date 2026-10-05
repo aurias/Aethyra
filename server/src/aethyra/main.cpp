@@ -20,22 +20,51 @@
 // separate tmwa-* programs do, so the services stay unchanged; this only
 // replaces the three processes a host would otherwise have to manage.
 //
-// Usage: aethyra-server [--world DIR] [--help] [--version]
+// Usage: aethyra-server [--world DIR] [--stop-file FILE] [--parent-pid PID]
+//                       [--help] [--version]
 //
 // All configuration and save paths are relative to the world directory
 // (default: the current directory).
+//
+// When the client hosts a world it passes --stop-file and --parent-pid.
+// The server shuts down cleanly (saving everything) once the stop file
+// exists or the client process is gone, so a crashed client cannot leave
+// a server running in the background. This works the same on Windows,
+// where a windowed program cannot send console control events to its
+// child process.
 
-#include <unistd.h>
+#include <fcntl.h>
+
+#include <cstdio>
+#include <cstdlib>
+
+#ifndef _WIN32
+# include <signal.h>
+# include <unistd.h>
+#endif
 
 #include "../high/core.hpp"
 
+#include "../strings/astring.hpp"
+
 #include "../io/cxxstdio.hpp"
+#include "../io/fd.hpp"
+
+#include "../net/timer.hpp"
 
 #include "../char/char.hpp"
 #include "../login/login.hpp"
 #include "../map/map.hpp"
 
 #include "../mmo/version.hpp"
+
+#ifdef _WIN32
+// After the server's headers, whose names collide with <windows.h> macros.
+# define WIN32_LEAN_AND_MEAN
+# define NOMINMAX
+# include <windows.h>
+# include <direct.h>
+#endif
 
 #include "../poison.hpp"
 
@@ -45,6 +74,57 @@ namespace tmwa
 namespace aethyra
 {
 static
+AString stop_file;
+static
+long parent_pid = 0;
+
+static
+bool parent_alive()
+{
+#ifdef _WIN32
+    HANDLE parent = OpenProcess(SYNCHRONIZE, FALSE, static_cast<DWORD>(parent_pid));
+    if (!parent)
+        return false;
+    bool alive = WaitForSingleObject(parent, 0) == WAIT_TIMEOUT;
+    CloseHandle(parent);
+    return alive;
+#else
+    return kill(static_cast<pid_t>(parent_pid), 0) == 0;
+#endif
+}
+
+static
+void check_host(TimerData *, tick_t)
+{
+    if (stop_file)
+    {
+        io::FD f = io::FD::open(stop_file, O_RDONLY);
+        if (f != io::FD())
+        {
+            f.close();
+            remove(stop_file.c_str());
+            PRINTF("Stop requested by the host; shutting down.\n"_fmt);
+            runflag = false;
+        }
+    }
+    if (parent_pid && !parent_alive())
+    {
+        PRINTF("Hosting client has exited; shutting down.\n"_fmt);
+        runflag = false;
+    }
+}
+
+static
+int change_dir(ZString dir)
+{
+#ifdef _WIN32
+    return _chdir(dir.c_str());
+#else
+    return chdir(dir.c_str());
+#endif
+}
+
+static
 int do_init(Slice<ZString> argv)
 {
     ZString argv0 = argv.pop_front();
@@ -53,7 +133,7 @@ int do_init(Slice<ZString> argv)
         ZString arg = argv.pop_front();
         if (arg == "--help"_s)
         {
-            PRINTF("Usage: %s [--world DIR] [--help] [--version]\n"_fmt, argv0);
+            PRINTF("Usage: %s [--world DIR] [--stop-file FILE] [--parent-pid PID] [--help] [--version]\n"_fmt, argv0);
             exit(0);
         }
         else if (arg == "--version"_s)
@@ -64,12 +144,20 @@ int do_init(Slice<ZString> argv)
         else if (arg == "--world"_s && argv)
         {
             ZString dir = argv.pop_front();
-            if (chdir(dir.c_str()) != 0)
+            if (change_dir(dir) != 0)
             {
                 FPRINTF(stderr, "Cannot enter world directory %s\n"_fmt, dir);
                 runflag = false;
                 return 0;
             }
+        }
+        else if (arg == "--stop-file"_s && argv)
+        {
+            stop_file = argv.pop_front();
+        }
+        else if (arg == "--parent-pid"_s && argv)
+        {
+            parent_pid = atol(argv.pop_front().c_str());
         }
         else
         {
@@ -90,6 +178,14 @@ int do_init(Slice<ZString> argv)
         char_::do_init(none);
     if (runflag)
         map::do_init(none);
+
+    if (runflag && (stop_file || parent_pid))
+    {
+        // A leftover stop file from an earlier session must not stop us.
+        if (stop_file)
+            remove(stop_file.c_str());
+        Timer(gettick() + 1_s, check_host, 1_s).detach();
+    }
     return 0;
 }
 

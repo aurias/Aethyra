@@ -23,6 +23,7 @@
 #include "login.h"
 
 #include "../statemanager.h"
+#include "../worldhost.h"
 
 #include "../net/logindata.h"
 
@@ -70,6 +71,14 @@ LoginDialog::LoginDialog() :
     mOkButton = new Button(_("OK"), "ok", this);
     mCancelButton = new Button(_("Cancel"), "cancel", this);
     mRegisterButton = new Button(_("Register"), "register", this);
+    mHostButton = new Button(_("Host World"), "host", this);
+    if (WorldHost::isRunning())
+    {
+        mHostButton->setCaption(_("Hosting"));
+        mHostButton->setEnabled(false);
+        mServerField->setText("127.0.0.1");
+        mPortField->setText(toString(WorldHost::PORT));
+    }
 
     mUserField->setActionEventId("ok");
     mPassField->setActionEventId("ok");
@@ -118,6 +127,7 @@ void LoginDialog::fontChanged()
     place(1, 4, mServerDropDown, 3).setPadding(1);
     place(0, 5, mKeepCheck, 4);
     place(0, 6, mRegisterButton).setHAlign(LayoutCell::LEFT);
+    place(1, 6, mHostButton).setHAlign(LayoutCell::LEFT);
     place(2, 6, mCancelButton);
     place(3, 6, mOkButton);
 
@@ -145,6 +155,26 @@ void LoginDialog::action(const gcn::ActionEvent &event)
     else if (event.getId() == "cancel")
     {
         stateManager->promptForQuit();
+    }
+    else if (event.getId() == "host")
+    {
+        std::string error;
+        if (WorldHost::start("default", error))
+        {
+            mServerField->setText("127.0.0.1");
+            mPortField->setText(toString(WorldHost::PORT));
+            mHostButton->setCaption(_("Hosting"));
+            mHostButton->setEnabled(false);
+            mOkButton->setEnabled(canSubmit());
+            new OkDialog(_("World Hosted"),
+                strprintf(_("Your world is running on this computer. Register "
+                            "an account to play. Friends join with this "
+                            "computer's address and port %d; over the "
+                            "internet, forward TCP ports 6901, 6121 and 5121 "
+                            "to it."), WorldHost::PORT));
+        }
+        else
+            new OkDialog(_("Could not host world"), error);
     }
     else if (event.getId() == "register")
     {

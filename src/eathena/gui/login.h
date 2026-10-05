@@ -112,6 +112,7 @@ class LoginDialog : public Window, public gcn::KeyListener,
         gcn::Button *mOkButton;
         gcn::Button *mCancelButton;
         gcn::Button *mRegisterButton;
+        gcn::Button *mHostButton;
 
         /**
          * Helper class to keep a list of all the recent entries for the

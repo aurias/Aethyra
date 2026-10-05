@@ -32,6 +32,7 @@
 #include "core/utils/stringutils.h"
 
 #include "eathena/statemanager.h"
+#include "eathena/worldhost.h"
 
 Engine *engine;
 Options options;
@@ -52,6 +53,8 @@ static void printHelp()
               << "  -h --help\t\t: " << _("Display this help") << std::endl
               << "  -H --updatehost\t: " << _("Use this update host")
               << std::endl
+              << "  -W --host-world\t: " << _("Host this world and connect "
+                 "to it") << std::endl
               << "  -p --playername\t: " << _("Login with this player")
               << std::endl
               << "  -P --password\t\t: " << _("Login with this password")
@@ -101,7 +104,7 @@ static void printVersion()
 
 static void parseOptions(int argc, char *argv[])
 {
-    const char *optstring = "hvud:U:P:Dp:C:H:O";
+    const char *optstring = "hvud:U:P:Dp:C:H:OW:";
 
     const struct option long_options[] = {
         { "configfile", required_argument, 0, 'C' },
@@ -110,6 +113,7 @@ static void parseOptions(int argc, char *argv[])
         { "playername", required_argument, 0, 'p' },
         { "password",   required_argument, 0, 'P' },
         { "help",       no_argument,       0, 'h' },
+        { "host-world", required_argument, 0, 'W' },
         { "updatehost", required_argument, 0, 'H' },
         { "skipupdate", no_argument,       0, 'u' },
         { "username",   required_argument, 0, 'U' },
@@ -143,6 +147,9 @@ static void parseOptions(int argc, char *argv[])
                 break;
             case 'H':
                 options.updateHost = optarg;
+                break;
+            case 'W':
+                options.hostWorld = optarg;
                 break;
             case 'p':
                 options.playername = optarg;
@@ -196,6 +203,8 @@ int main(int argc, char *argv[])
             stateManager->logic();
 
         destroy(stateManager);
+        // Save and stop a world this client was hosting.
+        WorldHost::stop();
         destroy(engine);
     }
 

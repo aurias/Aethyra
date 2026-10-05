@@ -4,6 +4,10 @@ PROJECT(AETHYRA)
 
 SET(VERSION 0.0.29.1)
 
+# World hosting (eathena/worldhost.cpp) uses std::filesystem.
+SET(CMAKE_CXX_STANDARD 17)
+SET(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 # where to look for cmake modules
 SET(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake/Modules)
 
