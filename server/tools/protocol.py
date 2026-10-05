@@ -4763,6 +4763,40 @@ def build_context():
             Set All Quest Log Variable to Value.
         ''',
     )
+    # Aethyra: hue skills. Ids 0x0216-0x021f are unused by tmwa and below the
+    # 0x0220 limit of the client's packet length table.
+    map_user.r(0x0216, 'use hue skill',
+        define='CMSG_AETHYRA_USE_SKILL',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u8, 'skill'),
+            at(3, u8, 'client dir'),
+        ],
+        fixed_size=4,
+        pre=[HUMAN],
+        post=[0x0217, 0x019b, 0x00b0],
+        desc='''
+            Use a hue skill (1 = Dash, 2 = Gust, 3 = Wind Scythe), facing the
+            given direction (client direction bits, as in 0x009b).
+        ''',
+    )
+    map_user.s(0x0217, 'being slide',
+        define='SMSG_AETHYRA_BEING_SLIDE',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, block_id, 'block id'),
+            at(6, u16, 'x'),
+            at(8, u16, 'y'),
+            at(10, u8, 'kind'),
+        ],
+        fixed_size=11,
+        pre=[0x0216],
+        post=[PRETTY],
+        desc='''
+            A being moved instantly to (x, y): 0 = dash, 1 = knocked back.
+            Unlike 0x0088 every client applies this to its own character too.
+        ''',
+    )
     # 0x0220 define='SMSG_BEING_NAME_RESPONSE2',
     # 0x0221 define='SMSG_CHAR_CREATE_SUCCEEDED2',
     # 0x0222 define='CMSG_CHAT_MESSAGE2',

@@ -75,6 +75,7 @@
 #include "tmw.hpp"
 #include "trade.hpp"
 #include "mob.hpp"
+#include "hue.hpp"
 
 #include "../poison.hpp"
 
@@ -1286,6 +1287,22 @@ void clif_fixpos(dumb_ptr<block_list> bl)
     fixed_88.y = bl->bl_y;
 
     Buffer buf = create_fpacket<0x0088, 10>(fixed_88);
+    clif_send(buf, bl, SendWho::AREA);
+}
+
+/// Aethyra: tell every client in view (including the being's own player)
+/// that bl moved instantly to its current position.
+void clif_aethyra_slide(dumb_ptr<block_list> bl, uint8_t kind)
+{
+    nullpo_retv(bl);
+
+    Packet_Fixed<0x0217> fixed_217;
+    fixed_217.block_id = bl->bl_id;
+    fixed_217.x = bl->bl_x;
+    fixed_217.y = bl->bl_y;
+    fixed_217.kind = kind;
+
+    Buffer buf = create_fpacket<0x0217, 11>(fixed_217);
     clif_send(buf, bl, SendWho::AREA);
 }
 
@@ -4258,6 +4275,37 @@ void clif_send_hp_full(dumb_ptr<map_session_data> sd)
  *
  *------------------------------------------
  */
+/// Aethyra: use a hue skill.
+static
+RecvResult clif_parse_AethyraUseSkill(Session *s, dumb_ptr<map_session_data> sd)
+{
+    Packet_Fixed<0x0216> fixed;
+    RecvResult rv = recv_fpacket<0x0216, 4>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
+
+    // Client direction bits: 1 down, 2 left, 4 up, 8 right (see 0x009b).
+    DIR dir;
+    switch (fixed.client_dir)
+    {
+    case 1 | 0: dir = DIR::S; break;
+    case 1 | 2: dir = DIR::SW; break;
+    case 0 | 2: dir = DIR::W; break;
+    case 4 | 2: dir = DIR::NW; break;
+    case 4 | 0: dir = DIR::N; break;
+    case 4 | 8: dir = DIR::NE; break;
+    case 0 | 8: dir = DIR::E; break;
+    case 1 | 8: dir = DIR::SE; break;
+    default:
+        return rv;
+    }
+
+    if (fixed.skill < 1 || fixed.skill > 3)
+        return rv;
+    hue_use_skill(sd, static_cast<HueSkill>(fixed.skill), dir);
+    return rv;
+}
+
 static
 RecvResult clif_parse_ChangeDir(Session *s, dumb_ptr<map_session_data> sd)
 {
@@ -5950,8 +5998,8 @@ func_table clif_parse_func_table[0x0220] =
     {0,     0,  nullptr,                        },  // 0x0213
     {0,     0,  nullptr,                        },  // 0x0214
     {0,     0,  nullptr,                        },  // 0x0215
-    {0,     0,  nullptr,                        },  // 0x0216
-    {0,     0,  nullptr,                        },  // 0x0217
+    {-1,    4,  clif_parse_AethyraUseSkill,     },  // 0x0216
+    {0,     11, nullptr,                        },  // 0x0217
     {0,     0,  nullptr,                        },  // 0x0218
     {0,     0,  nullptr,                        },  // 0x0219
     {0,     0,  nullptr,                        },  // 0x021a

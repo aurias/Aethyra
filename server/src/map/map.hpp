@@ -241,6 +241,8 @@ struct map_session_data : block_list, SessionData
     Timer invincible_timer;
     tick_t canact_tick;
     tick_t canmove_tick;
+    /// Aethyra: when each hue skill (indexed by HueSkill) may be used again.
+    tick_t hue_ready[4];
     tick_t canlog_tick;
     interval_t hp_sub, sp_sub;
     interval_t inchealhptick, inchealsptick;

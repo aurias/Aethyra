@@ -7,6 +7,7 @@ test accounts and characters without the GUI:
     protoclient.py create-char HOST PORT USER PASS NAME [SLOT]
     protoclient.py list-chars  HOST PORT USER PASS
     protoclient.py walk        HOST PORT USER PASS SLOT X Y [LINGER_SECS]
+    protoclient.py skills      HOST PORT USER PASS SLOT
 
 "walk" enters the map with the character in SLOT, walks to (X, Y), reports
 the server's answer and stays connected for LINGER_SECS so other clients
@@ -141,9 +142,13 @@ def create_char(host, port, user, password, name, slot=0):
     return 0
 
 
-def walk(host, port, user, password, slot, x, y, linger):
+def enter_map(host, port, user, password, slot):
+    """Log in, select the character in slot and enter the map.
+
+    Returns (map connection, packet lengths, character name, (x, y)).
+    """
     c, chars = char_connect(host, port, user, password)
-    account_id = c.account_id
+    name = dict(chars).get(slot, '')
     c.send(struct.pack('<HB', 0x0066, slot))
     pid, body = c.packet({0x0071: 28, 0x006c: 3, 0x0081: 3})
     if pid != 0x0071:
@@ -155,25 +160,37 @@ def walk(host, port, user, password, slot, x, y, linger):
         map_ip = host
 
     m = Conn(map_ip, map_port)
-    m.send(struct.pack('<HIIIIB', 0x0072, account_id, char_id, c.login_id1,
+    m.send(struct.pack('<HIIIIB', 0x0072, c.account_id, char_id, c.login_id1,
                        0, c.sex))
     m.read(4)  # 0x8000 hold packet
     lengths = client_packet_lengths()
     pid, body = m.packet(lengths)
     if pid != 0x0073:
         raise RuntimeError('map server refused: 0x%04x' % pid)
-    print('entered map at (%d, %d)' % decode_pos(body[4:7]))
+    pos = decode_pos(body[4:7])
+    print('entered map at (%d, %d)' % pos)
     m.send(struct.pack('<H', 0x007d))  # map loaded
+    m.sock.settimeout(0.2)
+    return m, lengths, name, pos
 
-    m.send(struct.pack('<H', 0x0085) + encode_pos(x, y))
-    m.sock.settimeout(1)
-    deadline = time.time() + max(linger, 3)
-    result = 1
+
+def drain(m, lengths, seconds):
+    """Read packets for a while; returns [(id, body)]."""
+    got = []
+    deadline = time.time() + seconds
     while time.time() < deadline:
         try:
-            pid, body = m.packet(lengths)
+            got.append(m.packet(lengths))
         except socket.timeout:
             continue
+    return got
+
+
+def walk(host, port, user, password, slot, x, y, linger):
+    m, lengths, _, _ = enter_map(host, port, user, password, slot)
+    m.send(struct.pack('<H', 0x0085) + encode_pos(x, y))
+    result = 1
+    for pid, body in drain(m, lengths, max(linger, 3)):
         if pid == 0x0087:
             src = decode_pos(body[4:7])
             print('walk accepted: (%d, %d) -> (%d, %d)' % (
@@ -184,7 +201,63 @@ def walk(host, port, user, password, slot, x, y, linger):
     return result
 
 
+def say(m, name, text):
+    message = ('%s : %s' % (name, text)).encode() + b'\0'
+    m.send(struct.pack('<HH', 0x008c, len(message) + 4) + message)
+
+
+SKILLS = {'dash': 1, 'gust': 2, 'scythe': 3}
+DIRS = {'down': 1, 'left': 2, 'up': 4, 'right': 8}
+
+
+def use_skill(m, skill, direction):
+    m.send(struct.pack('<HBB', 0x0216, SKILLS[skill], DIRS[direction]))
+
+
+def describe(packets, self_id=None):
+    """Summarise the packets the skills produce."""
+    lines = []
+    for pid, body in packets:
+        if pid == 0x0217:
+            bid, x, y, kind = struct.unpack_from('<IHHB', body, 0)
+            who = 'self' if bid == self_id else 'being %d' % bid
+            lines.append('slide %s -> (%d, %d) %s'
+                         % (who, x, y, ('dash', 'knockback')[kind]))
+        elif pid == 0x00b0 and struct.unpack_from('<H', body, 0)[0] == 7:
+            lines.append('gale energy now %d' % struct.unpack_from('<I', body, 2)[0])
+        elif pid == 0x00a0:
+            amount, item = struct.unpack_from('<HH', body, 2)
+            lines.append('got item %d x%d' % (item, amount))
+        elif pid == 0x0080:
+            lines.append('being %d removed' % struct.unpack_from('<I', body, 0)[0])
+        elif pid == 0x019b:
+            lines.append('effect %d' % struct.unpack_from('<I', body, 4)[0])
+        elif pid == 0x008e:
+            lines.append('message: %s' % body[2:].split(b'\0')[0].decode(errors='replace'))
+    return lines
+
+
+def skills_test(host, port, user, password, slot):
+    """Spawn a plant and a hopper beside the character (needs GM level for
+    @spawn), then use Wind Scythe, Gust and Dash and report the results."""
+    m, lengths, name, (x, y) = enter_map(host, port, user, password, slot)
+    drain(m, lengths, 1)
+    say(m, name, '@spawn 1101 1 %d %d' % (x + 1, y))
+    say(m, name, '@spawn 1001 1 %d %d' % (x + 2, y))
+    drain(m, lengths, 1)
+    for skill, direction, wait in (('scythe', 'right', 1.0),
+                                   ('gust', 'right', 1.0),
+                                   ('dash', 'left', 1.0)):
+        use_skill(m, skill, direction)
+        print('== %s %s' % (skill, direction))
+        for line in describe(drain(m, lengths, wait)):
+            print('   ' + line)
+    return 0
+
+
 def main(argv):
+    if len(argv) == 7 and argv[1] == 'skills':
+        return skills_test(argv[2], int(argv[3]), argv[4], argv[5], int(argv[6]))
     if len(argv) >= 9 and argv[1] == 'walk':
         linger = float(argv[9]) if len(argv) > 9 else 0
         return walk(argv[2], int(argv[3]), argv[4], argv[5], int(argv[6]),

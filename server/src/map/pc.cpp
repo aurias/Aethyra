@@ -53,6 +53,7 @@
 #include "chrif.hpp"
 #include "clif.hpp"
 #include "globals.hpp"
+#include "hue.hpp"
 #include "intif.hpp"
 #include "itemdb.hpp"
 #include "map.hpp"
@@ -954,6 +955,9 @@ int pc_authok(AccountId id, int login_id2, ClientVersion client_version,
     // ステータス初期計算など | Status initial calculation, etc.
     pc_calcstatus(sd, (int)CalcStatusKind::INITIAL_CALC);
 
+    // Aethyra: start each session with full Gale energy.
+    sd->status.sp = sd->status.max_sp;
+
     if (pc_isGM(sd))
     {
         PRINTF("Connection accepted: character '%s' (account: %d; GM level %d).\n"_fmt,
@@ -1519,12 +1523,14 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     if (sd->status.max_sp < 0 || sd->status.max_sp > battle_config.max_sp)
         sd->status.max_sp = battle_config.max_sp;
 
+    // Aethyra: SP is Gale energy, sized by level rather than INT for now.
+    sd->status.max_sp = hue_gale_max_energy(sd->status.base_level);
+
     //自然回復HP | Natural Recovery HP
     sd->nhealhp = 1 + (sd->paramc[ATTR::VIT] / 5) + (sd->status.max_hp / 200);
     //自然回復SP | Natural Recovery SP
-    sd->nhealsp = 1 + (sd->paramc[ATTR::INT] / 6) + (sd->status.max_sp / 100);
-    if (sd->paramc[ATTR::INT] >= 120)
-        sd->nhealsp += ((sd->paramc[ATTR::INT] - 120) >> 1) + 4;
+    // Aethyra: Gale regenerates quickly in open air.
+    sd->nhealsp = 3;
 
     if (sd->hprecov_rate != 100)
     {

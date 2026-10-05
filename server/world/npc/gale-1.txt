@@ -1,10 +1,48 @@
-// Windswept Meadow (test map). First NPC for bringing up the server.
+// Windswept Meadow (test map).
+
 gale-1,14,22,0|script|Windkeeper Ama|105
 {
     mes "[Windkeeper Ama]";
-    mes "\"Welcome to the meadow. Feel how the wind leans on the grass?\"";
+    mes "\"Welcome to the meadow. Feel how the wind leans on the grass? That is Gale.\"";
+    next;
+    menu "How do I use Gale?", L_Skills,
+         "Can you make something from my harvest?", L_Craft,
+         "Goodbye.", L_Close;
+
+L_Skills:
+    mes "[Windkeeper Ama]";
+    mes "\"Face the way you want to go, then:\"";
+    mes "X - Dash: rush forward on the wind.";
+    mes "C - Gust: blow Gust Hoppers away from you.";
+    mes "V - Wind Scythe: cut grass, herbs and flowers to harvest them.";
     next;
     mes "[Windkeeper Ama]";
-    mes "\"That is Gale. Here, everything listens to it a little.\"";
+    mes "\"Each one draws on your Gale energy, the green bar. It returns quickly while you breathe the open air.\"";
+    mes "\"Bring me three Meadow Herbs and three Windflower Petals and I will brew you a Gale Tonic.\"";
+    goto L_Close;
+
+L_Craft:
+    if (countitem(703) < 3 || countitem(704) < 3)
+        goto L_Short;
+    delitem 703, 3;
+    delitem 704, 3;
+    getitem 710, 1;
+    mes "[Windkeeper Ama]";
+    mes "\"There. A Gale Tonic: it mends wounds and fills your lungs with wind.\"";
+    goto L_Close;
+
+L_Short:
+    mes "[Windkeeper Ama]";
+    mes "\"I need three Meadow Herbs from the terrace above and three Windflower Petals from by the pond.\"";
+    goto L_Close;
+
+L_Close:
     close;
 }
+
+// Vegetation regrows; hoppers return.
+gale-1,20,21,17,6|monster|Meadow Grass|1101,22,20000ms,10000ms
+gale-1,20,4,17,3|monster|Wild Herb|1102,7,30000ms,15000ms
+gale-1,31,21,6,6|monster|Windflower|1103,6,30000ms,15000ms
+gale-1,29,19,8,7|monster|Gust Hopper|1001,4,30000ms,15000ms
+gale-1,28,4,9,3|monster|Gust Hopper|1001,2,30000ms,15000ms

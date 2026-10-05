@@ -1,1 +1,7 @@
-// (none yet)
+//id, name, jname, lv, hp, sp, bexp, jexp, range, atk1, atk2, def, mdef, critical_def, str, agi, vit, int, dex, luk, range2, range3, size, race, element, mode, speed, adelay, amotion, dmotion, (drop id, drop rate/10000) x10, (ignored) x10, mutations, mutation power
+// Gust Hopper: aggressive meadow critter. Push it away with Gust.
+1001, GustHopper, Gust Hopper, 3, 70, 0, 12, 4, 1, 3, 6, 0, 0, 0, 1, 3, 1, 0, 10, 1, 7, 10, 0, 2, 10, 133, 380, 1600, 600, 300, 705, 4000, 704, 1500, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+// Vegetation (1100-1199): PLANT mode, never moves or attacks. Wind Scythe harvests it.
+1101, MeadowGrass, Meadow Grass, 1, 30, 0, 2, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 3, 10, 64, 1000, 1000, 1000, 1000, 702, 10000, 701, 2500, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+1102, WildHerb, Wild Herb, 1, 30, 0, 3, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 3, 10, 64, 1000, 1000, 1000, 1000, 703, 10000, 702, 2000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+1103, Windflower, Windflower, 1, 30, 0, 3, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 3, 10, 64, 1000, 1000, 1000, 1000, 704, 10000, 701, 1500, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
