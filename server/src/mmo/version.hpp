@@ -47,10 +47,16 @@ namespace tmwa
 // 9 = manaplus ... to (adds support for player HP)
 // Aethyra: the Aethyra client descends from the 2009 Mana/TMW client and
 // speaks the version 1 dialect above; the server's fallbacks for older
-// clients cover it. Aethyra-specific protocol versions will be numbered
-// from AETHYRA_PROTOCOL_BASE so they never collide with ManaPlus releases.
+// clients cover it. Aethyra clients send AETHYRA_PROTOCOL_BASE plus their
+// Aethyra protocol number, so they never collide with ManaPlus releases;
+// the map server treats them as dialect 1 (AETHYRA_CLIENT_DIALECT).
+//   Aethyra protocol 1: hue skills 0x0216/0x0217 (first demo; sent 1)
+//   Aethyra protocol 2: hue state, actions, vessels 0x0218-0x021f
 #define MIN_CLIENT_VERSION 1
 #define AETHYRA_PROTOCOL_BASE 100
+#define AETHYRA_PROTOCOL 2
+#define AETHYRA_MIN_CLIENT_VERSION (AETHYRA_PROTOCOL_BASE + AETHYRA_PROTOCOL)
+#define AETHYRA_CLIENT_DIALECT 1
 
 // TODO now that I generate the protocol, split 'flags' out of the struct
 struct Version

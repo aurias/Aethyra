@@ -1,0 +1,9 @@
+// Natural hue vessels. Values are per unit; a stack shares one lot state.
+// item_id|hue|grade|capacity|safe_current|max_condition|initial_charge|label
+//  capacity / initial_charge: energy per unit. safe_current: what the
+//  stack (however many units) can deliver without overload.
+//  Harvested vessels arrive precharged (provisional: recharging is not
+//  decided; GMs can refill with @huecharge).
+701|gale|1|20|4|100|20|Breeze Reed
+// PROVISIONAL test grade for comparison; name and recipe not canon.
+706|gale|2|40|9|150|40|Tempered Reed (test grade)

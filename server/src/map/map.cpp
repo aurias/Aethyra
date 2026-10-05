@@ -69,6 +69,7 @@
 #include "clif.hpp"
 #include "globals.hpp"
 #include "grfio.hpp"
+#include "hue.hpp"
 #include "itemdb.hpp"
 #include "map_conf.hpp"
 #include "mob.hpp"
@@ -1473,7 +1474,8 @@ void cleanup_sub(dumb_ptr<block_list> bl)
 
 int compare_item(Item *a, Item *b)
 {
-    return (a->nameid == b->nameid);
+    // Aethyra: vessel stacks share one lot state, so lots must match too.
+    return (a->nameid == b->nameid) && hue_same_lot(*a, *b);
 }
 
 static
@@ -1508,6 +1510,8 @@ bool map_confs(io::Spanned<XString> key, io::Spanned<ZString> value)
         return mob_readskilldb(value.data);
     if (key.data == "skill_db"_s)
         return skill_readdb(value.data);
+    if (key.data == "hue_db"_s)
+        return hue_readdb(value.data);
 
     if (key.data == "resnametable"_s)
         return load_resnametable(value.data);
@@ -1628,6 +1632,7 @@ int map::do_init(Slice<ZString> argv)
     runflag &= do_init_npc();
     do_init_pc();
     do_init_party();
+    do_init_hue();
 
     npc_event_do_oninit();     // npcのOnInitイベント実行
 

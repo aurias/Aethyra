@@ -68,6 +68,7 @@
 #include "clif.hpp"
 #include "globals.hpp"
 #include "intif.hpp"
+#include "hue.hpp"
 #include "itemdb.hpp"
 #include "map.hpp"
 #include "map_conf.hpp"
@@ -1367,6 +1368,103 @@ ATCE atcommand_kami(Session *, dumb_ptr<map_session_data>,
     return ATCE::OKAY;
 }
 
+// Aethyra hue developer fixtures. GM-only: normal clients never control
+// rolls or authoritative values.
+static
+ATCE atcommand_hueinfo(Session *, dumb_ptr<map_session_data> sd, ZString)
+{
+    hue_describe(sd);
+    return ATCE::OKAY;
+}
+
+static
+ATCE atcommand_hueprofile(Session *s, dumb_ptr<map_session_data> sd,
+        ZString message)
+{
+    XString name = message.strip();
+    if (!name)
+        return ATCE::USAGE;
+    if (!hue_apply_profile(sd, name))
+    {
+        clif_displaymessage(s, "Unknown hue profile (see db/hue/profiles.txt)."_s);
+        return ATCE::EXIST;
+    }
+    clif_displaymessage(s, "Hue profile applied."_s);
+    return ATCE::OKAY;
+}
+
+static
+ATCE atcommand_hueforce(Session *s, dumb_ptr<map_session_data> sd,
+        ZString message)
+{
+    int outcome;
+    if (!extract(message.strip(), &outcome) || outcome < -1 || outcome > 3)
+        return ATCE::USAGE;
+    hue_force_outcome(sd, outcome);
+    clif_displaymessage(s, outcome < 0 ? "Overload outcomes are rolled again."_s
+            : STRPRINTF("Overload outcomes forced: action %s, stacks %s."_fmt,
+                (outcome & 1) ? "succeeds"_s : "fails"_s,
+                (outcome & 2) ? "destroyed"_s : "survive"_s));
+    return ATCE::OKAY;
+}
+
+static
+ATCE atcommand_hueseed(Session *s, dumb_ptr<map_session_data> sd,
+        ZString message)
+{
+    uint32_t seed;
+    if (!extract(message.strip(), &seed))
+        return ATCE::USAGE;
+    hue_seed(sd, seed);
+    clif_displaymessage(s, "Hue roll seed set."_s);
+    return ATCE::OKAY;
+}
+
+static
+ATCE atcommand_hueset(Session *, dumb_ptr<map_session_data> sd,
+        ZString message)
+{
+    XString what, hue_name_;
+    int value;
+    Hue hue;
+    if (extract(message.strip(), record<' '>(&what, &value)) && what == "points"_s)
+    {
+        hue_set_points(sd, value);
+        return ATCE::OKAY;
+    }
+    int skill;
+    if (extract(message.strip(), record<' '>(&what, &skill, &value)) && what == "prof"_s)
+        return hue_set_proficiency(sd, skill, value) ? ATCE::OKAY : ATCE::EXIST;
+    if (!extract(message.strip(), record<' '>(&what, &hue_name_, &value))
+            || !hue_from_name(hue_name_, &hue))
+        return ATCE::USAGE;
+    if (what == "energy"_s)
+        hue_set_energy(sd, hue, value);
+    else if (what == "mastery"_s)
+        hue_set_mastery(sd, hue, value);
+    else
+        return ATCE::USAGE;
+    return ATCE::OKAY;
+}
+
+static
+ATCE atcommand_huecharge(Session *, dumb_ptr<map_session_data> sd,
+        ZString message)
+{
+    int per_unit = -1;
+    if (message.strip() && !extract(message.strip(), &per_unit))
+        return ATCE::USAGE;
+    hue_charge_vessels(sd, per_unit);
+    return ATCE::OKAY;
+}
+
+static
+ATCE atcommand_huedebug(Session *, dumb_ptr<map_session_data> sd, ZString)
+{
+    hue_toggle_debug(sd);
+    return ATCE::OKAY;
+}
+
 static
 ATCE atcommand_heal(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
@@ -1529,6 +1627,7 @@ ATCE atcommand_baselevelup(Session *s, dumb_ptr<map_session_data> sd,
         for (i = 1; i <= level; i++)
             sd->status.status_point += (sd->status.base_level + i + 14) / 4;
         sd->status.base_level += level;
+        hue_level_points(sd);   // Aethyra: skill points per level
         clif_updatestatus(sd, SP::BASELEVEL);
         clif_updatestatus(sd, SP::NEXTBASEEXP);
         clif_updatestatus(sd, SP::STATUSPOINT);
@@ -1558,6 +1657,7 @@ ATCE atcommand_baselevelup(Session *s, dumb_ptr<map_session_data> sd,
         }
         // to add: remove status points from stats
         sd->status.base_level += level;
+        hue_level_points(sd);   // Aethyra: skill points per level
         clif_updatestatus(sd, SP::BASELEVEL);
         clif_updatestatus(sd, SP::NEXTBASEEXP);
         pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
@@ -3092,6 +3192,7 @@ ATCE atcommand_character_baselevel(Session *s, dumb_ptr<map_session_data> sd,
                     pl_sd->status.status_point +=
                         (pl_sd->status.base_level + i + 14) / 4;
                 pl_sd->status.base_level += level;
+                hue_level_points(pl_sd);   // Aethyra: skill points per level
                 clif_updatestatus(pl_sd, SP::BASELEVEL);
                 clif_updatestatus(pl_sd, SP::NEXTBASEEXP);
                 clif_updatestatus(pl_sd, SP::STATUSPOINT);
@@ -3121,6 +3222,7 @@ ATCE atcommand_character_baselevel(Session *s, dumb_ptr<map_session_data> sd,
                 }
                 // to add: remove status points from stats
                 pl_sd->status.base_level += level;
+                hue_level_points(pl_sd);   // Aethyra: skill points per level
                 pl_sd->status.base_exp = 0;
                 clif_updatestatus(pl_sd, SP::BASELEVEL);
                 clif_updatestatus(pl_sd, SP::NEXTBASEEXP);
@@ -5736,6 +5838,27 @@ Map<XString, AtCommandInfo> atcommand_info =
     {"kami"_s, {"<message ...>"_s,
         98, atcommand_kami,
         "Send an anonymous broadcast"_s}},
+    {"hueinfo"_s, {""_s,
+        60, atcommand_hueinfo,
+        "Show your hue state, skills and selected supply"_s}},
+    {"hueprofile"_s, {"<novice|advanced>"_s,
+        60, atcommand_hueprofile,
+        "Replace your hue state with a developer profile"_s}},
+    {"hueforce"_s, {"<-1|0|1|2|3>"_s,
+        60, atcommand_hueforce,
+        "Force overload outcomes (bit 1 succeed, bit 2 destroy; -1 roll)"_s}},
+    {"hueseed"_s, {"<number>"_s,
+        60, atcommand_hueseed,
+        "Seed your overload rolls"_s}},
+    {"hueset"_s, {"<energy|mastery> <hue> <value> | points <value> | prof <skill> <value>"_s,
+        60, atcommand_hueset,
+        "Set hue energy, mastery, skill points or a skill's proficiency"_s}},
+    {"huecharge"_s, {"[energy per unit]"_s,
+        60, atcommand_huecharge,
+        "Refill (or set) the charge of every vessel you carry"_s}},
+    {"huedebug"_s, {""_s,
+        60, atcommand_huedebug,
+        "Toggle hue action diagnostics in chat"_s}},
     {"heal"_s, {"[hp] [sp]"_s,
         40, atcommand_heal,
         "Restore or destroy your health"_s}},

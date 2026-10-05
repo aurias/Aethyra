@@ -3763,6 +3763,7 @@ RecvResult clif_parse_LoadEndAck(Session *s, dumb_ptr<map_session_data> sd)
     clif_updatestatus(sd, SP::SKILLPOINT);
     clif_itemlist(sd);
     clif_equiplist(sd);
+    hue_send_all(sd);   // Aethyra: after the inventory it describes
     clif_initialstatus(sd);
     clif_changeoption(sd);
     clif_changelook(sd, LOOK::WEAPON, static_cast<uint16_t>(ItemLook::W_FIST));
@@ -4275,34 +4276,66 @@ void clif_send_hp_full(dumb_ptr<map_session_data> sd)
  *
  *------------------------------------------
  */
+/// Aethyra: client direction bits (1 down, 2 left, 4 up, 8 right; see
+/// 0x009b) to a server direction.
+static
+bool aethyra_dir(uint8_t bits, DIR *dir)
+{
+    switch (bits)
+    {
+    case 1 | 0: *dir = DIR::S; return true;
+    case 1 | 2: *dir = DIR::SW; return true;
+    case 0 | 2: *dir = DIR::W; return true;
+    case 4 | 2: *dir = DIR::NW; return true;
+    case 4 | 0: *dir = DIR::N; return true;
+    case 4 | 8: *dir = DIR::NE; return true;
+    case 0 | 8: *dir = DIR::E; return true;
+    case 1 | 8: *dir = DIR::SE; return true;
+    default: return false;
+    }
+}
+
 /// Aethyra: use a hue skill.
 static
-RecvResult clif_parse_AethyraUseSkill(Session *s, dumb_ptr<map_session_data> sd)
+RecvResult clif_parse_AethyraHueAction(Session *s, dumb_ptr<map_session_data> sd)
 {
-    Packet_Fixed<0x0216> fixed;
-    RecvResult rv = recv_fpacket<0x0216, 4>(s, fixed);
+    Packet_Fixed<0x0218> fixed;
+    RecvResult rv = recv_fpacket<0x0218, 10>(s, fixed);
     if (rv != RecvResult::Complete)
         return rv;
 
-    // Client direction bits: 1 down, 2 left, 4 up, 8 right (see 0x009b).
     DIR dir;
-    switch (fixed.client_dir)
-    {
-    case 1 | 0: dir = DIR::S; break;
-    case 1 | 2: dir = DIR::SW; break;
-    case 0 | 2: dir = DIR::W; break;
-    case 4 | 2: dir = DIR::NW; break;
-    case 4 | 0: dir = DIR::N; break;
-    case 4 | 8: dir = DIR::NE; break;
-    case 0 | 8: dir = DIR::E; break;
-    case 1 | 8: dir = DIR::SE; break;
-    default:
+    if (!aethyra_dir(fixed.client_dir, &dir))
         return rv;
-    }
+    hue_action(sd, fixed.skill, dir, fixed.flags, fixed.request);
+    return rv;
+}
 
-    if (fixed.skill < 1 || fixed.skill > 3)
+/// Aethyra: select or deselect a vessel stack as hue supply.
+static
+RecvResult clif_parse_AethyraSelectSupply(Session *s, dumb_ptr<map_session_data> sd)
+{
+    Packet_Fixed<0x021d> fixed;
+    RecvResult rv = recv_fpacket<0x021d, 5>(s, fixed);
+    if (rv != RecvResult::Complete)
         return rv;
-    hue_use_skill(sd, static_cast<HueSkill>(fixed.skill), dir);
+
+    IOff0 index = fixed.ioff2.unshift();
+    if (index.ok())
+        hue_select_supply(sd, index, fixed.select != 0);
+    return rv;
+}
+
+/// Aethyra: learn or upgrade a hue skill.
+static
+RecvResult clif_parse_AethyraLearnSkill(Session *s, dumb_ptr<map_session_data> sd)
+{
+    Packet_Fixed<0x021e> fixed;
+    RecvResult rv = recv_fpacket<0x021e, 4>(s, fixed);
+    if (rv != RecvResult::Complete)
+        return rv;
+
+    hue_learn(sd, fixed.skill);
     return rv;
 }
 
@@ -5998,16 +6031,16 @@ func_table clif_parse_func_table[0x0220] =
     {0,     0,  nullptr,                        },  // 0x0213
     {0,     0,  nullptr,                        },  // 0x0214
     {0,     0,  nullptr,                        },  // 0x0215
-    {-1,    4,  clif_parse_AethyraUseSkill,     },  // 0x0216
+    {0,     0,  nullptr,                        },  // 0x0216
     {0,     11, nullptr,                        },  // 0x0217
-    {0,     0,  nullptr,                        },  // 0x0218
-    {0,     0,  nullptr,                        },  // 0x0219
-    {0,     0,  nullptr,                        },  // 0x021a
-    {0,     0,  nullptr,                        },  // 0x021b
-    {0,     0,  nullptr,                        },  // 0x021c
-    {0,     0,  nullptr,                        },  // 0x021d
-    {0,     0,  nullptr,                        },  // 0x021e
-    {0,     0,  nullptr,                        },  // 0x021f
+    {-1,    10, clif_parse_AethyraHueAction,    },  // 0x0218
+    {0,     VAR,nullptr,                        },  // 0x0219
+    {0,     VAR,nullptr,                        },  // 0x021a
+    {0,     VAR,nullptr,                        },  // 0x021b
+    {0,     13, nullptr,                        },  // 0x021c
+    {-1,    5,  clif_parse_AethyraSelectSupply, },  // 0x021d
+    {-1,    4,  clif_parse_AethyraLearnSkill,   },  // 0x021e
+    {0,     VAR,nullptr,                        },  // 0x021f
 };
 
 // Checks for packet flooding

@@ -220,6 +220,42 @@ Session *& server_for_m(const CharPair *mcs)
 }
 
 //-------------------------------------------------
+// Aethyra hue state: one tab field of ';'-separated parts
+//   version;origin;skill points;points level;hues;skills;supply
+// hues are access,mastery,cap,xp,energy joined by '/', one per hue;
+// skills are id,rank,proficiency joined by '/'; supply is inventory
+// indexes (+1, 0 = none) joined by ','. An empty field is a character
+// saved before hue state existed (version 0); the map server migrates it.
+//-------------------------------------------------
+static
+AString hue_state_tostr(const HueState& h)
+{
+    MString str;
+    str += STRPRINTF("%d;%d;%d;%d;"_fmt,
+            h.version, h.origin, h.skill_points, h.points_level);
+    for (int i = 0; i < MAX_HUES; ++i)
+    {
+        const HueRecord& r = h.hues[i];
+        str += STRPRINTF("%s%d,%d,%d,%u,%d"_fmt, i ? "/"_s : ""_s,
+                r.access, r.mastery, r.mastery_cap, r.mastery_xp, r.energy);
+    }
+    str += ';';
+    bool first = true;
+    for (const HueSkillRecord& sk : h.skills)
+    {
+        if (!sk.id)
+            continue;
+        str += STRPRINTF("%s%d,%d,%u"_fmt, first ? ""_s : "/"_s,
+                sk.id, sk.rank, sk.proficiency);
+        first = false;
+    }
+    str += ';';
+    for (int i = 0; i < MAX_HUE_SUPPLY; ++i)
+        str += STRPRINTF("%s%d"_fmt, i ? ","_s : ""_s, h.supply[i]);
+    return AString(str);
+}
+
+//-------------------------------------------------
 // Function to create the character line (for save)
 //-------------------------------------------------
 static
@@ -280,7 +316,7 @@ AString mmo_char_tostr(struct CharPair *cp)
     {
         if (p->inventory[i].nameid)
         {
-            str_p += STRPRINTF("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d "_fmt,
+            str_p += STRPRINTF("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%u,%d,%d "_fmt,
                     0 /*id*/,
                     p->inventory[i].nameid,
                     p->inventory[i].amount,
@@ -292,7 +328,10 @@ AString mmo_char_tostr(struct CharPair *cp)
                     0 /*card[1]*/,
                     0 /*card[2]*/,
                     0 /*card[3]*/,
-                    0 /*broken*/);
+                    0 /*broken*/,
+                    p->inventory[i].hue_charge,
+                    p->inventory[i].condition,
+                    p->inventory[i].lot_flags);
         }
     }
     str_p += '\t';
@@ -323,6 +362,9 @@ AString mmo_char_tostr(struct CharPair *cp)
      }
     str_p += '\t';
 
+    str_p += hue_state_tostr(p->hue);
+    str_p += '\t';
+
     return AString(str_p);
 }
 
@@ -346,6 +388,39 @@ bool impl_extract(XString str, struct skill_loader *s)
 }
 } // namespace char
 
+static
+bool impl_extract(XString str, HueRecord *r)
+{
+    return extract(str, record<','>(&r->access, &r->mastery, &r->mastery_cap,
+                &r->mastery_xp, &r->energy));
+}
+
+static
+bool impl_extract(XString str, HueSkillRecord *sk)
+{
+    return extract(str, record<','>(&sk->id, &sk->rank, &sk->proficiency));
+}
+
+static
+bool impl_extract(XString str, HueState *h)
+{
+    std::vector<HueRecord> hues;
+    std::vector<HueSkillRecord> skills;
+    std::vector<int16_t> supply;
+    *h = HueState{};
+    if (!extract(str, record<';'>(&h->version, &h->origin, &h->skill_points,
+                    &h->points_level, vrec<'/'>(&hues), vrec<'/'>(&skills),
+                    vrec<','>(&supply))))
+        return false;
+    if (hues.size() > MAX_HUES || skills.size() > MAX_HUE_SKILLS
+            || supply.size() > MAX_HUE_SUPPLY)
+        return false;
+    std::copy(hues.begin(), hues.end(), h->hues.begin());
+    std::copy(skills.begin(), skills.end(), h->skills.begin());
+    std::copy(supply.begin(), supply.end(), h->supply.begin());
+    return true;
+}
+
 //-------------------------------------------------------------------------
 // Function to set the character from the line (at read of characters file)
 //-------------------------------------------------------------------------
@@ -365,8 +440,9 @@ bool impl_extract(XString str, CharPair *cp)
     std::vector<struct skill_loader> skills;
     std::vector<GlobalReg> vars;
     XString hair_style;
+    XString hue;
     if (!extract(str,
-                record<'\t'>(
+                record<'\t', 19>(
                     &k->char_id,
                     record<','>(&k->account_id, &k->char_num),
                     &k->name,
@@ -388,7 +464,10 @@ bool impl_extract(XString str, CharPair *cp)
                     vrec<' '>(&inventory),
                     &unused_cart,
                     vrec<' '>(&skills),
-                    vrec<' '>(&vars))))
+                    vrec<' '>(&vars),
+                    &hue)))
+        return false;
+    if (hue && !extract(hue, &p->hue))
         return false;
 
     if (sex.size() != 1)
@@ -448,6 +527,29 @@ bool impl_extract(XString str, CharPair *cp)
 
 namespace char_
 {
+/// Copy a save file to NAME.pre-hue1 once, before the first save in the
+/// Aethyra hue format overwrites it (old servers cannot read new saves).
+static
+void backup_legacy_save(ZString name)
+{
+    AString backup = STRPRINTF("%s.pre-hue1"_fmt, name);
+    {
+        io::ReadFile existing(backup);
+        if (existing.is_open())
+            return;
+    }
+    io::ReadFile in(name);
+    if (!in.is_open())
+        return;
+    io::WriteFile out(backup);
+    AString line;
+    while (in.getline(line))
+        out.put_line(line);
+    if (out.close())
+        CHAR_LOG_AND_ECHO("Saved a copy of %s as %s before migrating it.\n"_fmt,
+                name, backup);
+}
+
 //---------------------------------
 // Function to read characters file
 //---------------------------------
@@ -467,6 +569,7 @@ int mmo_char_init(void)
     }
 
     int line_count = 0;
+    bool legacy = false;
     AString line;
     while (in.getline(line))
     {
@@ -493,8 +596,15 @@ int mmo_char_init(void)
         }
         if (char_id_count < next(cd.key.char_id))
             char_id_count = next(cd.key.char_id);
+        if (!cd.data->hue.version)
+            legacy = true;
         char_keys.push_back(std::move(cd));
         online_chars.push_back(nullptr);
+    }
+    if (legacy)
+    {
+        backup_legacy_save(char_conf.char_txt);
+        backup_legacy_save(inter_conf.storage_txt);
     }
 
     CHAR_LOG_AND_ECHO("mmo_char_init: %zu characters read in %s.\n"_fmt,
@@ -705,6 +815,9 @@ CharPair *make_new_char(Session *s, CharName name, const Stats6& stats, uint8_t 
     cd.max_sp = 11 * (100 + cd.attrs[ATTR::INT]) / 100;
     cd.hp = cd.max_hp;
     cd.sp = cd.max_sp;
+    // Aethyra: the default homeland until character creation offers one;
+    // the map server grants its starting hue and skills at first login.
+    cd.hue.origin = 1;
     cd.status_point = 0;
     cd.skill_point = 0;
     cd.option = static_cast<Opt0>(0x0000); // Opt0 is only declared

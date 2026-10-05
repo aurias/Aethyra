@@ -24,9 +24,11 @@
 
 #include "fwd.hpp"
 
+#include <array>
 #include <chrono>
 #include <functional>
 #include <list>
+#include <vector>
 
 #include "../ints/udl.hpp"
 
@@ -128,6 +130,26 @@ enum class AutoMod
     automove,
     autoblock,
     autokick,
+};
+
+/// Aethyra: hue state that lasts only for a session; see hue.hpp.
+struct HueSession
+{
+    /// When each skill (by id) may be used again.
+    std::array<tick_t, 32> ready = {};
+    /// Activations in progress: an action holds its hue's allowance until
+    /// its execution ends.
+    struct Activation { tick_t until; uint16_t skill; uint8_t hue; };
+    std::vector<Activation> active;
+    /// Highest action request number handled (requests repeat safely).
+    uint32_t last_request = 0;
+    /// Recent award times per skill id, for diminishing repeated awards.
+    std::array<std::vector<tick_t>, 32> awards;
+    /// Developer fixtures: forced overload outcome (-1 = roll), RNG state,
+    /// chat diagnostics.
+    int forced = -1;
+    uint32_t rng = 0x2545f491;
+    bool debug = false;
 };
 
 struct map_session_data : block_list, SessionData
@@ -241,8 +263,8 @@ struct map_session_data : block_list, SessionData
     Timer invincible_timer;
     tick_t canact_tick;
     tick_t canmove_tick;
-    /// Aethyra: when each hue skill (indexed by HueSkill) may be used again.
-    tick_t hue_ready[4];
+    /// Aethyra: per-session hue state (the saved part is status.hue).
+    struct HueSession hue;
     tick_t canlog_tick;
     interval_t hp_sub, sp_sub;
     interval_t inchealhptick, inchealsptick;

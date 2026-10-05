@@ -49,6 +49,11 @@ constexpr interval_t MAX_WALK_SPEED = 1_s;
 constexpr int MAX_STORAGE = 500;
 constexpr int MAX_PARTY = 120;
 
+// Aethyra hue state (see map/hue.hpp).
+constexpr int MAX_HUES = 8;
+constexpr int MAX_HUE_SKILLS = 16;
+constexpr int MAX_HUE_SUPPLY = 3;
+
 #define MIN_HAIR_STYLE battle_config.min_hair_style
 #define MAX_HAIR_STYLE battle_config.max_hair_style
 #define MIN_HAIR_COLOR battle_config.min_hair_color

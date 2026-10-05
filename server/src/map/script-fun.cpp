@@ -47,6 +47,7 @@
 #include "clif.hpp"
 #include "globals.hpp"
 #include "intif.hpp"
+#include "hue.hpp"
 #include "itemdb.hpp"
 #include "map.hpp"
 #include "mob.hpp"
@@ -783,6 +784,27 @@ void builtin_mapwarp(ScriptState *st)   // Added by RoVeRT
             x0, y0,
             x1, y1,
             BL::PC);
+}
+
+/*==========================================
+ * Aethyra: huerestore "<hue>", amount - add energy to a hue the player can
+ * use (item effects). Never exceeds the hue's capacity.
+ *------------------------------------------
+ */
+static
+void builtin_huerestore(ScriptState *st)
+{
+    dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    script_nullpo_end(sd, "player not found"_s);
+    ZString name = ZString(conv_str(st, &AARG(0)));
+    int amount = conv_num(st, &AARG(1));
+    Hue hue;
+    if (!hue_from_name(name, &hue))
+    {
+        PRINTF("huerestore: unknown hue %s\n"_fmt, name);
+        return;
+    }
+    hue_restore(sd, hue, amount);
 }
 
 /*==========================================
@@ -5648,6 +5670,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(areawarp, "MxyxyMxy"_s, '\0'),
     BUILTIN(mapwarp, "MMxy"_s, '\0'),
     BUILTIN(heal, "ii?"_s, '\0'),
+    BUILTIN(huerestore, "si"_s, '\0'),
     BUILTIN(injure, "iii"_s, '\0'),
     BUILTIN(input, "N"_s, '\0'),
     BUILTIN(requestitem, "N?"_s, '\0'),

@@ -2654,7 +2654,9 @@ void parse_login(Session *s)
                 }
                 if (result == -1)
                 {
-                    if (fixed.client_protocol_version < wrap<ClientVersion>(MIN_CLIENT_VERSION))
+                    // Aethyra: only clients speaking the current hue
+                    // protocol can play (older ones misread hue state).
+                    if (fixed.client_protocol_version < wrap<ClientVersion>(AETHYRA_MIN_CLIENT_VERSION))
                         result = 5; // client too old
                 }
                 if (result == -1)

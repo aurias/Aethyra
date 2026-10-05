@@ -67,7 +67,7 @@ AString storage_tostr(Storage *p)
         if (p->storage_[i].nameid && p->storage_[i].amount)
         {
             str += STRPRINTF(
-                    "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d "_fmt,
+                    "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%u,%d,%d "_fmt,
                     0 /*id*/,
                     p->storage_[i].nameid,
                     p->storage_[i].amount,
@@ -78,8 +78,11 @@ AString storage_tostr(Storage *p)
                     0 /*card[0]*/,
                     0 /*card[1]*/,
                     0 /*card[2]*/,
-                    0 /*card[3]*/);
-            // shouldn't that include 'broken' also? Oh, well ...
+                    0 /*card[3]*/,
+                    0 /*broken*/,
+                    p->storage_[i].hue_charge,
+                    p->storage_[i].condition,
+                    p->storage_[i].lot_flags);
             f++;
         }
     }

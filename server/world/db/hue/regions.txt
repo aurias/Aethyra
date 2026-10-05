@@ -1,0 +1,4 @@
+// Hue concentration per map: percent of normal regeneration for a hue.
+// Open air supports Gale; unlisted maps use 100 for Gale, 0 for others.
+// map|hue|regen_pct
+gale-1|gale|100

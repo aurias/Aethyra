@@ -40,8 +40,12 @@ bool impl_extract(XString str, GlobalReg *var)
 
 bool impl_extract(XString str, Item *it)
 {
+    // id,nameid,amount,equip,identify,refine,attribute,card0..3[,broken]
+    // [,hue charge,condition,lot flags]: storage lines stop at card3 and
+    // saves from before Aethyra vessel lots stop at broken.
     XString ignored;
     XString corruption_hack_amount;
+    *it = Item{};
     bool rv = extract(str,
             record<',', 11>(
                 &ignored,
@@ -55,7 +59,10 @@ bool impl_extract(XString str, Item *it)
                 &ignored,
                 &ignored,
                 &ignored,
-                &ignored));
+                &ignored,
+                &it->hue_charge,
+                &it->condition,
+                &it->lot_flags));
     if (rv)
     {
         if (corruption_hack_amount == "-1"_s)

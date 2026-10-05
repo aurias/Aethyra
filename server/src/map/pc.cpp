@@ -41,6 +41,7 @@
 #include "../io/read.hpp"
 
 #include "../mmo/cxxstdio_enums.hpp"
+#include "../mmo/version.hpp"
 
 #include "../net/timer.hpp"
 #include "../net/timestamp-utils.hpp"
@@ -836,6 +837,9 @@ int pc_authok(AccountId id, int login_id2, ClientVersion client_version,
 
     sd->login_id2 = login_id2;
     sd->client_version = client_version;
+    // Aethyra clients speak the version 1 dialect plus the hue protocol.
+    if (client_version >= wrap<ClientVersion>(AETHYRA_PROTOCOL_BASE))
+        sd->client_version = wrap<ClientVersion>(AETHYRA_CLIENT_DIALECT);
 
     sd->status_key = *st_key;
     sd->status = *st_data;
@@ -952,11 +956,13 @@ int pc_authok(AccountId id, int login_id2, ClientVersion client_version,
     //スパノビ用死にカウンターのスクリプト変数からの読み出しとsdへのセット | Reading from Counter Script Variable to Death for Spa Novi and Set to SD
     sd->die_counter = pc_readglobalreg(sd, stringish<VarName>("PC_DIE_COUNTER"_s));
 
+    // Aethyra: migrate or initialise the hue state (energy lives there).
+    // Before the status calculation, which clamps the legacy SP the demo
+    // used as Gale energy.
+    hue_login(sd);
+
     // ステータス初期計算など | Status initial calculation, etc.
     pc_calcstatus(sd, (int)CalcStatusKind::INITIAL_CALC);
-
-    // Aethyra: start each session with full Gale energy.
-    sd->status.sp = sd->status.max_sp;
 
     if (pc_isGM(sd))
     {
@@ -1523,14 +1529,12 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     if (sd->status.max_sp < 0 || sd->status.max_sp > battle_config.max_sp)
         sd->status.max_sp = battle_config.max_sp;
 
-    // Aethyra: SP is Gale energy, sized by level rather than INT for now.
-    sd->status.max_sp = hue_gale_max_energy(sd->status.base_level);
-
     //自然回復HP | Natural Recovery HP
     sd->nhealhp = 1 + (sd->paramc[ATTR::VIT] / 5) + (sd->status.max_hp / 200);
     //自然回復SP | Natural Recovery SP
-    // Aethyra: Gale regenerates quickly in open air.
-    sd->nhealsp = 3;
+    sd->nhealsp = 1 + (sd->paramc[ATTR::INT] / 6) + (sd->status.max_sp / 100);
+    if (sd->paramc[ATTR::INT] >= 120)
+        sd->nhealsp += ((sd->paramc[ATTR::INT] - 120) >> 1) + 4;
 
     if (sd->hprecov_rate != 100)
     {
@@ -2166,6 +2170,10 @@ PickupFail pc_additem(dumb_ptr<map_session_data> sd, Item *item_data,
 
     if (!item_data->nameid || amount <= 0)
         return PickupFail::BAD_ITEM;
+    // Aethyra: vessels carry lot state; a new one gets its initial state.
+    Item lot = *item_data;
+    hue_init_lot(&lot);
+    item_data = &lot;
     P<struct item_data> data = itemdb_search(item_data->nameid);
     if ((w = data->weight * amount) + sd->weight > sd->max_weight)
         return PickupFail::TOO_HEAVY;
@@ -2177,12 +2185,14 @@ PickupFail pc_additem(dumb_ptr<map_session_data> sd, Item *item_data,
         // TODO see if there's any nicer way to preserve the foreach var
         for (i = IOff0::from(0); i != IOff0::from(MAX_INVENTORY); ++i)
         {
-            if (sd->status.inventory[i].nameid == item_data->nameid)
+            if (sd->status.inventory[i].nameid == item_data->nameid
+                && hue_same_lot(sd->status.inventory[i], *item_data))
             {
                 if (sd->status.inventory[i].amount + amount > MAX_AMOUNT)
                     return PickupFail::STACK_FULL;
                 sd->status.inventory[i].amount += amount;
                 clif_additem(sd, i, amount, PickupFail::OKAY);
+                hue_send_lot(sd, i);
                 break;
             }
         }
@@ -2200,6 +2210,7 @@ PickupFail pc_additem(dumb_ptr<map_session_data> sd, Item *item_data,
             sd->status.inventory[i].amount = amount;
             sd->inventory_data[i] = Some(data);
             clif_additem(sd, i, amount, PickupFail::OKAY);
+            hue_send_lot(sd, i);
         }
         else
             return PickupFail::INV_FULL;
@@ -2235,6 +2246,7 @@ int pc_delitem(dumb_ptr<map_session_data> sd, IOff0 n, int amount, int type)
             pc_unequipitem(sd, n, CalcStatus::NOW);
         sd->status.inventory[n] = Item{};
         sd->inventory_data[n] = None;
+        hue_slot_changed(sd, n);
     }
     if (!(type & 1))
         clif_delitem(sd, n, amount);
@@ -3092,6 +3104,7 @@ int pc_checkbaselevelup(dumb_ptr<map_session_data> sd)
         clif_updatestatus(sd, SP::STATUSPOINT);
         clif_updatestatus(sd, SP::BASELEVEL);
         clif_updatestatus(sd, SP::NEXTBASEEXP);
+        hue_level_points(sd);   // Aethyra: skill points per character level
         pc_calcstatus(sd, (int)CalcStatusKind::NORMAL_RECALC);
         pc_heal(sd, sd->status.max_hp, sd->status.max_sp, true);
 

@@ -1490,6 +1490,7 @@ def build_context():
     VString24 = vstring_h.native('VString<23>')
     VString32 = vstring_h.native('VString<31>')
     VString40 = vstring_h.native('VString<39>')
+    VString80 = vstring_h.native('VString<79>')
 
     # not all of these are used on the network side of things
     # should this set of numbers be +1'ed ?
@@ -1603,6 +1604,7 @@ def build_context():
     str24 = ctx.string(VString24)
     str32 = ctx.string(VString32)
     str40 = ctx.string(VString40)
+    str80 = ctx.string(VString80)
 
     seconds = ctx.string(timestamp_seconds_buffer)
     millis = ctx.string(timestamp_milliseconds_buffer)
@@ -1719,6 +1721,44 @@ def build_context():
                 at(None, item_name_id, 'nameid'),
                 at(None, i16, 'amount'),
                 at(None, epos, 'equip'),
+                # Aethyra vessel lot state: every unit of a stack shares it.
+                at(None, u32, 'hue charge'),
+                at(None, u16, 'condition'),
+                at(None, u8, 'lot flags'),
+            ],
+            size=None,
+    )
+
+    hue_record = ctx.struct(
+            'HueRecord',
+            [
+                at(None, u8, 'access'),
+                at(None, u8, 'mastery'),
+                at(None, u8, 'mastery cap'),
+                at(None, u32, 'mastery xp'),
+                at(None, i32, 'energy'),
+            ],
+            size=None,
+    )
+    hue_skill_record = ctx.struct(
+            'HueSkillRecord',
+            [
+                at(None, u16, 'id'),
+                at(None, u8, 'rank'),
+                at(None, u32, 'proficiency'),
+            ],
+            size=None,
+    )
+    hue_state = ctx.struct(
+            'HueState',
+            [
+                at(None, u8, 'version'),
+                at(None, u8, 'origin'),
+                at(None, i16, 'skill points'),
+                at(None, u8, 'points level'),
+                at(None, ctx.array(hue_record, 'MAX_HUES'), 'hues'),
+                at(None, ctx.array(hue_skill_record, 'MAX_HUE_SKILLS'), 'skills'),
+                at(None, ctx.array(i16, 'MAX_HUE_SUPPLY'), 'supply'),
             ],
             size=None,
     )
@@ -1804,6 +1844,7 @@ def build_context():
                 at(None, ctx.array(global_reg, 'ACCOUNT_REG_NUM'), 'account reg'),
                 at(None, i32, 'account reg2 num'),
                 at(None, ctx.array(global_reg, 'ACCOUNT_REG2_NUM'), 'account reg2'),
+                at(None, hue_state, 'hue'),
             ],
             size=None,
     )
@@ -4765,21 +4806,6 @@ def build_context():
     )
     # Aethyra: hue skills. Ids 0x0216-0x021f are unused by tmwa and below the
     # 0x0220 limit of the client's packet length table.
-    map_user.r(0x0216, 'use hue skill',
-        define='CMSG_AETHYRA_USE_SKILL',
-        fixed=[
-            at(0, u16, 'packet id'),
-            at(2, u8, 'skill'),
-            at(3, u8, 'client dir'),
-        ],
-        fixed_size=4,
-        pre=[HUMAN],
-        post=[0x0217, 0x019b, 0x00b0],
-        desc='''
-            Use a hue skill (1 = Dash, 2 = Gust, 3 = Wind Scythe), facing the
-            given direction (client direction bits, as in 0x009b).
-        ''',
-    )
     map_user.s(0x0217, 'being slide',
         define='SMSG_AETHYRA_BEING_SLIDE',
         fixed=[
@@ -4790,11 +4816,209 @@ def build_context():
             at(10, u8, 'kind'),
         ],
         fixed_size=11,
-        pre=[0x0216],
+        pre=[0x0218],
         post=[PRETTY],
         desc='''
             A being moved instantly to (x, y): 0 = dash, 1 = knocked back.
             Unlike 0x0088 every client applies this to its own character too.
+        ''',
+    )
+    # Aethyra protocol 2: authoritative hue actions, state and vessels.
+    map_user.r(0x0218, 'hue action',
+        define='CMSG_AETHYRA_HUE_ACTION',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'skill'),
+            at(4, u8, 'client dir'),
+            at(5, u8, 'flags'),
+            at(6, u32, 'request'),
+        ],
+        fixed_size=10,
+        pre=[HUMAN],
+        post=[0x0219, 0x0217, 0x019b, 0x021a, 0x021b, 0x021c],
+        desc='''
+            Use a learned hue skill facing the given direction (client
+            direction bits). flags bit 0: accept overload risk. request is
+            a client counter; the server ignores numbers it has seen.
+        ''',
+    )
+    map_user.s(0x0219, 'hue action result',
+        define='SMSG_AETHYRA_HUE_ACTION_RESULT',
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, u32, 'request'),
+            at(8, u16, 'skill'),
+            at(10, u8, 'outcome'),
+            at(11, u8, 'reason'),
+            at(12, u16, 'energy'),
+            at(14, u16, 'current'),
+            at(16, u16, 'channel'),
+            at(18, u16, 'personal spent'),
+            at(20, u16, 'vessel spent'),
+            at(22, u16, 'detail'),
+        ],
+        head_size=24,
+        repeat=[
+            at(0, ioff2, 'ioff2'),
+            at(2, item_name_id, 'name id'),
+            at(4, u16, 'amount'),
+            at(6, u16, 'spent'),
+            at(8, u8, 'fate'),
+            at(9, u16, 'load pct'),
+        ],
+        repeat_size=11,
+        pre=[0x0218],
+        post=[PRETTY],
+        desc='''
+            Outcome of a hue action: what it demanded (energy, peak current),
+            what the character could channel, what each source supplied and
+            what happened to each participating vessel stack.
+        ''',
+    )
+    map_user.s(0x021a, 'hue state',
+        define='SMSG_AETHYRA_HUE_STATE',
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+            at(4, u8, 'origin'),
+            at(5, u8, 'version'),
+            at(6, i16, 'skill points'),
+            at(8, u8, 'ceiling'),
+            at(9, u8, 'active'),
+            at(10, u16, 'balance version'),
+        ],
+        head_size=12,
+        repeat=[
+            at(0, u8, 'hue'),
+            at(1, u8, 'access'),
+            at(2, u8, 'mastery'),
+            at(3, u8, 'mastery cap'),
+            at(4, u32, 'mastery xp'),
+            at(8, u32, 'mastery next'),
+            at(12, i32, 'energy'),
+            at(16, i32, 'capacity'),
+            at(20, u16, 'regen'),
+            at(22, u16, 'regen pct'),
+            at(24, u16, 'current'),
+            at(26, u16, 'flow pct'),
+            at(28, u8, 'allowance'),
+            at(29, u8, 'allowance used'),
+        ],
+        repeat_size=30,
+        pre=[0x007d, 0x0218, 0x021e],
+        post=[PRETTY],
+        desc='''
+            Snapshot of the character's hue records, one entry per hue the
+            character has access to.
+        ''',
+    )
+    map_user.s(0x021b, 'hue skills',
+        define='SMSG_AETHYRA_HUE_SKILLS',
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+        ],
+        head_size=4,
+        repeat=[
+            at(0, u16, 'id'),
+            at(2, u8, 'rank'),
+            at(3, u32, 'proficiency'),
+        ],
+        repeat_size=7,
+        pre=[0x007d, 0x0218, 0x021e],
+        post=[PRETTY],
+        desc='''
+            The character's learned hue skills.
+        ''',
+    )
+    map_user.s(0x021c, 'item lot',
+        define='SMSG_AETHYRA_ITEM_LOT',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, ioff2, 'ioff2'),
+            at(4, item_name_id, 'name id'),
+            at(6, u32, 'charge'),
+            at(10, u16, 'condition'),
+            at(12, u8, 'supply'),
+        ],
+        fixed_size=13,
+        pre=[0x007d, 0x0218, 0x021d],
+        post=[PRETTY],
+        desc='''
+            Vessel state of an inventory stack: charge per unit in
+            thousandths of energy, condition, and its place in the selected
+            supply order (0 = not selected).
+        ''',
+    )
+    map_user.r(0x021d, 'select supply',
+        define='CMSG_AETHYRA_SELECT_SUPPLY',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, ioff2, 'ioff2'),
+            at(4, u8, 'select'),
+        ],
+        fixed_size=5,
+        pre=[HUMAN],
+        post=[0x021c, 0x0219],
+        desc='''
+            Add an inventory vessel stack to (1) or remove it from (0) the
+            character's selected hue supply.
+        ''',
+    )
+    map_user.r(0x021e, 'learn hue skill',
+        define='CMSG_AETHYRA_LEARN_SKILL',
+        fixed=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'skill'),
+        ],
+        fixed_size=4,
+        pre=[HUMAN],
+        post=[0x021a, 0x021b, 0x0219],
+        desc='''
+            Spend skill points to learn a skill or raise it one rank.
+        ''',
+    )
+    map_user.s(0x021f, 'hue definitions',
+        define='SMSG_AETHYRA_HUE_DEFINITIONS',
+        head=[
+            at(0, u16, 'packet id'),
+            at(2, u16, 'packet length'),
+        ],
+        head_size=4,
+        repeat=[
+            at(0, u8, 'kind'),
+            at(1, u8, 'rank'),
+            at(2, u16, 'id'),
+            at(4, u8, 'hue'),
+            at(5, u8, 'action'),
+            at(6, u8, 'max rank'),
+            at(7, u8, 'unused'),
+            at(8, str24, 'name'),
+            at(32, u16, 'p0'),
+            at(34, u16, 'p1'),
+            at(36, u16, 'p2'),
+            at(38, u16, 'p3'),
+            at(40, u16, 'p4'),
+            at(42, u16, 'p5'),
+            at(44, u16, 'p6'),
+            at(46, u16, 'p7'),
+            at(48, u16, 'p8'),
+            at(50, u16, 'p9'),
+            at(52, u16, 'p10'),
+            at(54, u16, 'p11'),
+            at(56, str80, 'description'),
+        ],
+        repeat_size=136,
+        pre=[0x007d],
+        post=[PRETTY],
+        desc='''
+            Definitions the client needs to explain the rules: kind 0 is a
+            skill rank (p0 energy, p1 current, p2 exec ms, p3 cooldown ms,
+            p4 required level, p5 required mastery, p6 required proficiency,
+            p7 proficiency cap, p8-p10 effect parameters); kind 1 is a vessel
+            (p0 capacity, p1 safe current, p2 max condition, p3 grade, p4
+            initial charge).
         ''',
     )
     # 0x0220 define='SMSG_BEING_NAME_RESPONSE2',

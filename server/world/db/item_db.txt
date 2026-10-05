@@ -3,7 +3,8 @@
 701, BreezeReed,      3, 10, 5, 1, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, {}, {}
 702, GrassFiber,      3,  4, 2, 1, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, {}, {}
 703, MeadowHerb,      0, 16, 8, 1, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, {heal 20, 0, 1;}, {}
-704, WindflowerPetal, 0, 16, 8, 1, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, {heal 0, 20, 1;}, {}
+704, WindflowerPetal, 0, 16, 8, 1, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, {huerestore "gale", 20;}, {}
+706, TemperedReed,    3, 40, 20, 2, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, {}, {}
 705, HopperFeather,   3, 12, 6, 1, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, {}, {}
 // Crafted by the Windkeeper from herbs and petals.
-710, GaleTonic,       0, 60, 30, 2, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, {heal 60, 60, 1;}, {}
+710, GaleTonic,       0, 60, 30, 2, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, {heal 60, 0, 1; huerestore "gale", 60;}, {}

@@ -24,7 +24,8 @@ import struct
 import sys
 import time
 
-CLIENT_PROTOCOL_VERSION = 1
+# Aethyra protocol 2 (AETHYRA_PROTOCOL_BASE + 2); see server mmo/version.hpp.
+CLIENT_PROTOCOL_VERSION = 102
 
 
 class Conn:
@@ -210,8 +211,18 @@ SKILLS = {'dash': 1, 'gust': 2, 'scythe': 3}
 DIRS = {'down': 1, 'left': 2, 'up': 4, 'right': 8}
 
 
-def use_skill(m, skill, direction):
-    m.send(struct.pack('<HBB', 0x0216, SKILLS[skill], DIRS[direction]))
+_request = [0]
+
+
+def use_skill(m, skill, direction, flags=0, request=None):
+    """Send a hue action; skill is a name or a numeric skill id."""
+    if request is None:
+        _request[0] += 1
+        request = _request[0]
+    skill_id = SKILLS.get(skill, skill)
+    m.send(struct.pack('<HHBBI', 0x0218, skill_id, DIRS[direction], flags,
+                       request))
+    return request
 
 
 def describe(packets, self_id=None):
