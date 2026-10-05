@@ -31,13 +31,14 @@ static
 std::string do_asprintf(const char *desc, const char *expr,
         const char *file, size_t line, const char *function)
 {
-    char *what = nullptr;
-    int len = asprintf(&what, "%s:%zu: error: in '%s', incorrectly alleged that '%s' (%s)",
-            file, line, function, desc, expr);
-    if (len == -1)
+    // snprintf twice rather than asprintf, which Windows lacks.
+    const char *fmt = "%s:%zu: error: in '%s', incorrectly alleged that '%s' (%s)";
+    int len = snprintf(nullptr, 0, fmt, file, line, function, desc, expr);
+    if (len < 0)
         abort();
-    std::string out = what;
-    free(what);
+    std::string out(static_cast<size_t>(len) + 1, '\0');
+    snprintf(&out[0], out.size(), fmt, file, line, function, desc, expr);
+    out.resize(static_cast<size_t>(len));
     return out;
 }
 

@@ -18,6 +18,9 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifndef _WIN32
+// The Windows implementation is in fd-win32.cpp.
+
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/uio.h>
@@ -207,3 +210,5 @@ namespace io
     }
 } // namespace io
 } // namespace tmwa
+
+#endif // _WIN32

@@ -20,10 +20,13 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <sys/wait.h>
-
-#include <alloca.h>
-#include <unistd.h>
+#ifndef _WIN32
+# include <sys/wait.h>
+# include <alloca.h>
+# include <unistd.h>
+#else
+# include <malloc.h>
+#endif
 
 #include <csignal>
 #include <cstdlib>
@@ -38,11 +41,19 @@
 #include "../net/socket.hpp"
 #include "../net/timer.hpp"
 
+#ifdef _WIN32
+// After the server's headers, whose names collide with <windows.h> macros.
+# define WIN32_LEAN_AND_MEAN
+# define NOMINMAX
+# include <windows.h>
+#endif
+
 #include "../poison.hpp"
 
 
 namespace tmwa
 {
+#ifndef _WIN32
 // Added by Gabuzomeu
 //
 // This is an implementation of signal() using sigaction() for portability.
@@ -74,10 +85,12 @@ sigfunc compat_signal(int signo, sigfunc func)
 
     return oact.sa_handler;
 }
+#endif
 
 volatile
 bool runflag = true;
 
+#ifndef _WIN32
 static
 void chld_proc(int)
 {
@@ -95,6 +108,21 @@ void sig_proc(int)
     }
     runflag = false;
 }
+#else
+/// Windows delivers Ctrl-C, Ctrl-Break and closing the console window as
+/// console control events instead of signals. Each one stops the main loop
+/// so the services save and shut down. For a closing window Windows ends
+/// the process when this handler returns, so it waits for that shutdown.
+static
+BOOL WINAPI console_ctrl(DWORD event)
+{
+    runflag = false;
+    if (event == CTRL_CLOSE_EVENT || event == CTRL_LOGOFF_EVENT
+        || event == CTRL_SHUTDOWN_EVENT)
+        Sleep(4000);
+    return TRUE;
+}
+#endif
 
 /*
     Note about fatal signals:
@@ -110,11 +138,13 @@ void sig_proc(int)
 static
 void check_caps()
 {
+#ifndef _WIN32
     if (geteuid() == 0)
     {
         puts("Please don't run as root!");
         _exit(1);
     }
+#endif
 }
 
 int tmwa_main(int argc, char **argv,
@@ -139,6 +169,7 @@ int tmwa_main(int argc, char **argv,
     // set up exit handlers *after* the initialization has happened.
     // This is because term_func is likely to depend on successful init.
 
+#ifndef _WIN32
     DIAG_PUSH();
     DIAG_I(old_style_cast);
     compat_signal(SIGPIPE, SIG_IGN);
@@ -157,6 +188,9 @@ int tmwa_main(int argc, char **argv,
     compat_signal(SIGILL, SIG_DFL);
     compat_signal(SIGFPE, SIG_DFL);
     DIAG_POP();
+#else
+    SetConsoleCtrlHandler(console_ctrl, TRUE);
+#endif
 
     atexit(term_func);
 

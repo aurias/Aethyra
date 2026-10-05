@@ -21,8 +21,10 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <netdb.h>
-#include <unistd.h>
+#ifndef _WIN32
+# include <netdb.h>
+# include <unistd.h>
+#endif
 
 #include <ctime>
 

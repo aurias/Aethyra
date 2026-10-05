@@ -38,7 +38,11 @@ struct TimeT : Comparable
 
     // conversion
     TimeT(time_t t=0) : value(t) {}
+#ifdef _WIN32
+    TimeT(struct tm t) : value(_mkgmtime(&t)) {}
+#else
     TimeT(struct tm t) : value(timegm(&t)) {}
+#endif
     operator time_t() const { return value; }
     operator struct tm() const { time_t v = value; return *gmtime(&v); }
 

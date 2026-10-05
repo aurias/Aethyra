@@ -19,7 +19,11 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <fcntl.h>
-#include <unistd.h>
+#ifndef _WIN32
+# include <unistd.h>
+#else
+# include <process.h>
+#endif
 
 #include <cerrno>
 #include <cstdio>
@@ -46,6 +50,18 @@ const int backup_count = 9;
 
 namespace io
 {
+    /// rename() that replaces an existing target, as POSIX rename() does.
+    /// Windows' rename() refuses to overwrite, which would leave saves in
+    /// their temporary files.
+    static
+    void rename_over(const char *from, const char *to)
+    {
+#ifdef _WIN32
+        std::remove(to);
+#endif
+        std::rename(from, to);
+    }
+
     // Start writing a tmpfile
     static
     FD get_lock_open(ZString filename, int *info)
@@ -84,13 +100,13 @@ namespace io
         while (--n)
         {
             AString newer_filename = STRPRINTF("%s.%d"_fmt, filename, n);
-            rename(newer_filename.c_str(), old_filename.c_str());
+            rename_over(newer_filename.c_str(), old_filename.c_str());
             old_filename = std::move(newer_filename);
         }
-        rename(filename.c_str(), old_filename.c_str());
+        rename_over(filename.c_str(), old_filename.c_str());
 
         AString tmpfile = STRPRINTF("%s_%d.tmp"_fmt, filename, tmp_suffix);
-        rename(tmpfile.c_str(), filename.c_str());
+        rename_over(tmpfile.c_str(), filename.c_str());
     }
 } // namespace io
 } // namespace tmwa

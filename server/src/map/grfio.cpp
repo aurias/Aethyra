@@ -21,7 +21,6 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <fcntl.h>
-#include <unistd.h>
 
 #include <cassert>
 
@@ -34,6 +33,7 @@
 
 #include "../io/cxxstdio.hpp"
 #include "../io/extract.hpp"
+#include "../io/fd.hpp"
 #include "../io/read.hpp"
 
 #include "../high/extract_mmo.hpp"
@@ -92,20 +92,21 @@ std::vector<uint8_t> grfio_reads(MapName rname)
     lfname_ += grfio_resnametable(rname);
     AString lfname = AString(lfname_);
 
-    // TODO wrap this immediately
-    int fd = open(lfname.c_str(), O_RDONLY);
-    if (fd == -1)
+    // Read through io::FD so this works on Windows too (no pread there).
+    io::FD fd = io::FD::open(lfname, O_RDONLY);
+    if (fd == io::FD())
     {
         FPRINTF(stderr, "Resource %s (file %s) not found\n"_fmt,
                 rname, lfname);
         return {};
     }
-    int64_t len = lseek(fd, 0, SEEK_END);
-    assert (len != -1);
-    std::vector<uint8_t> buffer(len);
-    ssize_t err = pread(fd, buffer.data(), len, 0);
-    assert (err == len);
-    close(fd);
+    std::vector<uint8_t> buffer;
+    uint8_t chunk[4096];
+    ssize_t got;
+    while ((got = fd.read(chunk, sizeof chunk)) > 0)
+        buffer.insert(buffer.end(), chunk, chunk + got);
+    assert (got == 0);
+    fd.close();
     return buffer;
 }
 } // namespace map

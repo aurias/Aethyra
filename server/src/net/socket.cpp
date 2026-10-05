@@ -21,8 +21,10 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <netinet/tcp.h>
-#include <sys/socket.h>
+#ifndef _WIN32
+# include <netinet/tcp.h>
+# include <sys/socket.h>
+#endif
 
 #include <fcntl.h>
 
@@ -39,6 +41,17 @@
 #include "../wire/packets.hpp"
 
 #include "timer.hpp"
+
+#ifdef _WIN32
+// After the server's headers, whose names collide with <windows.h> macros.
+# define WIN32_LEAN_AND_MEAN
+# define NOMINMAX
+# include <winsock2.h>
+# include <ws2tcpip.h>
+// Winsock has no SIGPIPE to suppress; SD_BOTH has SHUT_RDWR's value.
+# define MSG_NOSIGNAL 0
+# define SHUT_RDWR SD_BOTH
+#endif
 
 #include "../poison.hpp"
 
@@ -58,7 +71,7 @@ const uint32_t WFIFO_SIZE = 65536;
 DIAG_PUSH();
 DIAG_I(old_style_cast);
 static
-std::array<std::unique_ptr<Session>, FD_SETSIZE> session;
+std::array<std::unique_ptr<Session>, io::MAX_SOCKETS> session;
 DIAG_POP();
 
 Session::Session(SessionIO io, SessionParsers p)
@@ -104,20 +117,20 @@ void Session::set_parsers(SessionParsers p)
 void set_session(io::FD fd, std::unique_ptr<Session> sess)
 {
     int f = fd.uncast_dammit();
-    assert (0 <= f && f < FD_SETSIZE);
+    assert (0 <= f && f < io::MAX_SOCKETS);
     session[f] = std::move(sess);
 }
 Session *get_session(io::FD fd)
 {
     int f = fd.uncast_dammit();
-    if (0 <= f && f < FD_SETSIZE)
+    if (0 <= f && f < io::MAX_SOCKETS)
         return session[f].get();
     return nullptr;
 }
 void reset_session(io::FD fd)
 {
     int f = fd.uncast_dammit();
-    assert (0 <= f && f < FD_SETSIZE);
+    assert (0 <= f && f < io::MAX_SOCKETS);
     session[f] = nullptr;
 }
 int get_fd_max() { return fd_max; }
@@ -218,7 +231,10 @@ void connect_client(Session *ls)
     /// Allow to bind() again after the server restarts.
     // Since the socket is still in the TIME_WAIT, there's a possibility
     // that formerly lost packets might be delivered and confuse the server.
+#ifndef _WIN32
+    // (On Windows SO_REUSEADDR lets another program take the port.)
     fd.setsockopt(SOL_SOCKET, SO_REUSEADDR, &yes, sizeof yes);
+#endif
     /// Send packets as soon as possible
     /// even if the kernel thinks there is too little for it to be worth it!
     /// Testing shows this is indeed a good idea.
@@ -270,7 +286,10 @@ Session *make_listen_port(uint16_t port, SessionParsers inferior)
     /// Allow to bind() again after the server restarts.
     // Since the socket is still in the TIME_WAIT, there's a possibility
     // that formerly lost packets might be delivered and confuse the server.
+#ifndef _WIN32
+    // (On Windows SO_REUSEADDR lets another program take the port.)
     fd.setsockopt(SOL_SOCKET, SO_REUSEADDR, &yes, sizeof yes);
+#endif
     /// Send packets as soon as possible
     /// even if the kernel thinks there is too little for it to be worth it!
     // I'm not convinced this is a good idea; although in minimizes the
@@ -329,7 +348,10 @@ Session *make_connection(IP4Address ip, uint16_t port, SessionParsers parsers)
     /// Allow to bind() again after the server restarts.
     // Since the socket is still in the TIME_WAIT, there's a possibility
     // that formerly lost packets might be delivered and confuse the server.
+#ifndef _WIN32
+    // (On Windows SO_REUSEADDR lets another program take the port.)
     fd.setsockopt(SOL_SOCKET, SO_REUSEADDR, &yes, sizeof yes);
+#endif
     /// Send packets as soon as possible
     /// even if the kernel thinks there is too little for it to be worth it!
     // I'm not convinced this is a good idea; although in minimizes the

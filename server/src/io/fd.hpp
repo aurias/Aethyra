@@ -20,8 +20,35 @@
 
 #include "fwd.hpp"
 
-#include <sys/select.h>
-#include <sys/socket.h>
+#ifdef _WIN32
+// Winsock stays out of headers: <windows.h> defines macros that collide
+// with names used throughout the server. See fd-win32.cpp.
+# include <sys/types.h>
+# include <bitset>
+# include <cstddef>
+# include <cstdint>
+struct sockaddr;
+struct timeval;
+typedef int socklen_t;
+// POSIX flags the server uses that the Windows CRT lacks.
+# ifndef O_CLOEXEC
+#  define O_CLOEXEC 0
+# endif
+# ifndef F_SETFL
+#  define F_SETFL 4
+# endif
+# ifndef O_NONBLOCK
+#  define O_NONBLOCK 0x40000000
+# endif
+struct iovec
+{
+    void *iov_base;
+    size_t iov_len;
+};
+#else
+# include <sys/select.h>
+# include <sys/socket.h>
+#endif
 
 #include "../diagnostics.hpp"
 
@@ -30,6 +57,14 @@ namespace tmwa
 {
 namespace io
 {
+#ifdef _WIN32
+    /// Number of socket slots. On Windows a socket FD is a slot index that
+    /// maps to a Winsock handle; files use CRT descriptors offset past it.
+    constexpr int MAX_SOCKETS = 1024;
+#else
+    constexpr int MAX_SOCKETS = FD_SETSIZE;
+#endif
+
     class FD
     {
     private:
@@ -64,10 +99,12 @@ namespace io
         static
         FD socket(int domain, int type, int protocol);
         FD accept(struct sockaddr *addr, socklen_t *addrlen);
+#ifndef _WIN32
         static
         int pipe(FD& r, FD& w);
         static
         int pipe2(FD& r, FD& w, int flags);
+#endif
 
         static
         FD sysconf_SC_OPEN_MAX();
@@ -80,19 +117,25 @@ namespace io
         ssize_t send(const void *buf, size_t count, int flags);
         ssize_t sendto(const void *buf, size_t count, int flags,
                    const struct sockaddr *dest_addr, socklen_t addrlen);
+#ifndef _WIN32
         ssize_t sendmsg(const struct msghdr *msg, int flags);
         int sendmmsg(struct mmsghdr *msgvec, unsigned int vlen,
              unsigned int flags);
+#endif
         ssize_t recv(void *buf, size_t len, int flags);
         ssize_t recvfrom(void *buf, size_t len, int flags,
                  struct sockaddr *src_addr, socklen_t *addrlen);
+#ifndef _WIN32
         ssize_t recvmsg(struct msghdr *msg, int flags);
         ssize_t pread(void *buf, size_t count, int64_t offset);
         ssize_t pwrite(const void *buf, size_t count, int64_t offset);
         ssize_t readv(const struct iovec *iov, int iovcnt);
+#endif
         ssize_t writev(const struct iovec *iov, int iovcnt);
+#ifndef _WIN32
         ssize_t preadv(const struct iovec *iov, int iovcnt, int64_t offset);
         ssize_t pwritev(const struct iovec *iov, int iovcnt, int64_t offset);
+#endif
 
         int close();
         int shutdown(int);
@@ -106,8 +149,10 @@ namespace io
         int bind(const struct sockaddr *addr, socklen_t addrlen);
         int connect(const struct sockaddr *addr, socklen_t addrlen);
         FD dup();
+#ifndef _WIN32
         FD dup2(FD newfd);
         FD dup3(FD newfd, int flags);
+#endif
 
 
         friend
@@ -142,6 +187,21 @@ namespace io
         }
     };
 
+#ifdef _WIN32
+    /// Same interface as the POSIX version, over socket slot numbers.
+    class FD_Set
+    {
+    private:
+        std::bitset<MAX_SOCKETS> fds;
+    public:
+        void clr(FD fd);
+        bool isset(FD fd);
+        void set(FD fd);
+
+        static
+        int select(int nfds, FD_Set *readfds, FD_Set *writefds, FD_Set *exceptfds, struct timeval *timeout);
+    };
+#else
     class FD_Set
     {
     private:
@@ -178,5 +238,6 @@ namespace io
         static
         int pselect(int nfds, FD_Set *readfds, FD_Set *writefds, FD_Set *exceptfds, const struct timespec *timeout, const sigset_t *sigmask);
     };
+#endif
 } // namespace io
 } // namespace tmwa

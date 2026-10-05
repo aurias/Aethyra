@@ -22,10 +22,11 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <sys/time.h>
-#include <sys/wait.h>
-
-#include <netdb.h>
-#include <unistd.h>
+#ifndef _WIN32
+# include <sys/wait.h>
+# include <netdb.h>
+# include <unistd.h>
+#endif
 
 #include <cassert>
 #include <cstdlib>
@@ -1386,12 +1387,17 @@ void map_close_logfile(void)
 
         map_logfile.reset();
 
+#ifndef _WIN32
         if (!fork())
         {
             execvp("gzip", argv);
             _exit(1);
         }
         wait(nullptr);
+#else
+        // No gzip to hand on Windows; rotated logs stay uncompressed.
+        (void)argv;
+#endif
     }
 }
 

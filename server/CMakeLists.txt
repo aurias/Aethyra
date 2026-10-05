@@ -20,8 +20,10 @@ if(TMWA_BUILD_TESTS)
   include(GoogleTest)
 endif()
 
-# Prefer to use G++ as the compiler
-set(CMAKE_CXX_COMPILER g++)
+# Prefer to use G++ as the compiler (a cross toolchain file chooses its own)
+if(NOT CMAKE_CROSSCOMPILING)
+  set(CMAKE_CXX_COMPILER g++)
+endif()
 # Set C++ standard to C++11
 # Note we want -std=c++11, not -std=gnu++11, as we want to avoid GNU extensions
 set(CMAKE_CXX_STANDARD 11)
@@ -71,13 +73,19 @@ include_directories(include)
 # FIXME this is currently broken
 #set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 # General purpose build flags.
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -fstack-protector-strong -fstack-clash-protection -fno-strict-aliasing -flto=auto")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -fstack-protector-strong -fno-strict-aliasing -flto=auto")
+if(NOT WIN32)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fstack-clash-protection")
+endif()
 # Fortified libc calls (needs an optimising build to do anything).
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3")
 # Trap on out-of-bounds accesses to arrays with a statically known size.
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=bounds -fsanitize-trap=all")
 # Full RELRO, non-executable stack, and no mixed code/data pages.
-add_link_options(-Wl,-z,relro -Wl,-z,now -Wl,-z,noexecstack -Wl,-z,separate-code)
+# These are ELF linker options; PE/COFF (Windows) has no equivalent flags.
+if(NOT WIN32)
+  add_link_options(-Wl,-z,relro -Wl,-z,now -Wl,-z,noexecstack -Wl,-z,separate-code)
+endif()
 # Enable link time optimization, and track function and data sections. We let
 # the linker remove unused code.
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto=auto -ffunction-sections -fdata-sections -Wl,--gc-sections")
@@ -126,11 +134,22 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 # Add a shared library: libtmwa-shared.so.0
 # When we add_executable later, we need to link against this library.
-add_library(tmwa-shared SHARED ${shared_SOURCES}
+# Windows: link statically, so the server is one self-contained .exe and
+# nothing needs dllexport annotations.
+if(WIN32)
+  set(TMWA_SHARED_KIND STATIC)
+else()
+  set(TMWA_SHARED_KIND SHARED)
+endif()
+add_library(tmwa-shared ${TMWA_SHARED_KIND} ${shared_SOURCES}
   $<TARGET_OBJECTS:tmwa-obj-io>
   $<TARGET_OBJECTS:tmwa-obj-strings>
   ${conf_SOURCES}
 )
+if(WIN32)
+  target_link_libraries(tmwa-shared PUBLIC ws2_32)
+  target_link_options(tmwa-shared INTERFACE -static -static-libgcc -static-libstdc++)
+endif()
 # SO versioning
 set(ABI_VERSION 0)
 set_target_properties(tmwa-shared PROPERTIES

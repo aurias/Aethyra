@@ -29,6 +29,21 @@ namespace tmwa
 {
 namespace io
 {
+#ifdef _WIN32
+    // Windows cannot open a directory as a descriptor, so a DirFd there
+    // always means the current directory and opens names relative to it.
+    DirFd::DirFd()
+    : dirfd()
+    {}
+
+    DirFd::DirFd(ZString)
+    : dirfd()
+    {}
+
+    DirFd::DirFd(const DirFd&, ZString)
+    : dirfd()
+    {}
+#else
     DirFd::DirFd()
     : dirfd(FD::cast_dammit(AT_FDCWD))
     {}
@@ -40,6 +55,7 @@ namespace io
     DirFd::DirFd(const DirFd& root, ZString path)
     : dirfd(FD::openat(root.dirfd, path, O_DIRECTORY | O_RDONLY, 0))
     {}
+#endif
 
     DirFd::~DirFd()
     {

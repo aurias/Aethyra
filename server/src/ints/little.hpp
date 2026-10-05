@@ -20,8 +20,6 @@
 
 #include "fwd.hpp"
 
-#include <endian.h>
-
 #include <cstdint>
 
 
@@ -29,7 +27,9 @@ namespace tmwa
 {
 // We implement our own actual swapping, because glibc emits assembly
 // instead of letting the *compiler* do what it does best.
-#if __BYTE_ORDER != __BIG_ENDIAN && __BYTE_ORDER != __LITTLE_ENDIAN
+// GCC predefines these on every target, including Windows, which has no
+// <endian.h>.
+#if __BYTE_ORDER__ != __ORDER_BIG_ENDIAN__ && __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
 # error "broken endians"
 #endif
 
@@ -74,7 +74,7 @@ namespace ints
     inline __attribute__((warn_unused_result))
     bool native_to_network(Little16 *net, uint16_t nat)
     {
-        if (__BYTE_ORDER == __BIG_ENDIAN)
+        if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
             nat = bswap16(nat);
         __builtin_memcpy(net, &nat, 2);
         return true;
@@ -82,7 +82,7 @@ namespace ints
     inline __attribute__((warn_unused_result))
     bool native_to_network(Little32 *net, uint32_t nat)
     {
-        if (__BYTE_ORDER == __BIG_ENDIAN)
+        if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
             nat = __builtin_bswap32(nat);
         __builtin_memcpy(net, &nat, 4);
         return true;
@@ -90,7 +90,7 @@ namespace ints
     inline __attribute__((warn_unused_result))
     bool native_to_network(Little64 *net, uint64_t nat)
     {
-        if (__BYTE_ORDER == __BIG_ENDIAN)
+        if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
             nat = __builtin_bswap64(nat);
         __builtin_memcpy(net, &nat, 8);
         return true;
@@ -107,7 +107,7 @@ namespace ints
     {
         uint16_t tmp;
         __builtin_memcpy(&tmp, &net, 2);
-        if (__BYTE_ORDER == __BIG_ENDIAN)
+        if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
             tmp = bswap16(tmp);
         *nat = tmp;
         return true;
@@ -117,7 +117,7 @@ namespace ints
     {
         uint32_t tmp;
         __builtin_memcpy(&tmp, &net, 4);
-        if (__BYTE_ORDER == __BIG_ENDIAN)
+        if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
             tmp = __builtin_bswap32(tmp);
         *nat = tmp;
         return true;
@@ -127,7 +127,7 @@ namespace ints
     {
         uint64_t tmp;
         __builtin_memcpy(&tmp, &net, 8);
-        if (__BYTE_ORDER == __BIG_ENDIAN)
+        if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
             tmp = __builtin_bswap64(tmp);
         *nat = tmp;
         return true;
@@ -143,7 +143,7 @@ namespace ints
     inline __attribute__((warn_unused_result))
     bool native_to_network(Little16 *net, int16_t nat)
     {
-        if (__BYTE_ORDER == __BIG_ENDIAN)
+        if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
             nat = bswap16(nat);
         __builtin_memcpy(net, &nat, 2);
         return true;
@@ -151,7 +151,7 @@ namespace ints
     inline __attribute__((warn_unused_result))
     bool native_to_network(Little32 *net, int32_t nat)
     {
-        if (__BYTE_ORDER == __BIG_ENDIAN)
+        if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
             nat = __builtin_bswap32(nat);
         __builtin_memcpy(net, &nat, 4);
         return true;
@@ -159,7 +159,7 @@ namespace ints
     inline __attribute__((warn_unused_result))
     bool native_to_network(Little64 *net, int64_t nat)
     {
-        if (__BYTE_ORDER == __BIG_ENDIAN)
+        if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
             nat = __builtin_bswap64(nat);
         __builtin_memcpy(net, &nat, 8);
         return true;
@@ -176,7 +176,7 @@ namespace ints
     {
         int16_t tmp;
         __builtin_memcpy(&tmp, &net, 2);
-        if (__BYTE_ORDER == __BIG_ENDIAN)
+        if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
             tmp = bswap16(tmp);
         *nat = tmp;
         return true;
@@ -186,7 +186,7 @@ namespace ints
     {
         int32_t tmp;
         __builtin_memcpy(&tmp, &net, 4);
-        if (__BYTE_ORDER == __BIG_ENDIAN)
+        if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
             tmp = __builtin_bswap32(tmp);
         *nat = tmp;
         return true;
@@ -196,7 +196,7 @@ namespace ints
     {
         int64_t tmp;
         __builtin_memcpy(&tmp, &net, 8);
-        if (__BYTE_ORDER == __BIG_ENDIAN)
+        if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
             tmp = __builtin_bswap64(tmp);
         *nat = tmp;
         return true;

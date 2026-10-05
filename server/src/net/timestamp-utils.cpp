@@ -49,7 +49,7 @@ void stamp_time(timestamp_milliseconds_buffer& out)
 {
     struct timeval tv;
     gettimeofday(&tv, nullptr);
-    struct tm when = TimeT(tv.tv_sec);
+    struct tm when = TimeT(static_cast<time_t>(tv.tv_sec));
     char buf[24];
     strftime(buf, 20, "%Y-%m-%d %H:%M:%S", &when);
     sprintf(buf + 19, ".%03d", static_cast<int>(tv.tv_usec / 1000));

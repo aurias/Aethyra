@@ -20,7 +20,11 @@
 
 #include "fwd.hpp"
 
-#include <netinet/in.h>
+#ifdef _WIN32
+# include <inaddr.h>
+#else
+# include <netinet/in.h>
+#endif
 
 #include <cstddef>
 #include <cstdint>

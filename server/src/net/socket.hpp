@@ -22,7 +22,9 @@
 
 #include "fwd.hpp"
 
-#include <sys/select.h>
+#ifndef _WIN32
+# include <sys/select.h>
+#endif
 
 #include <algorithm>
 #include <memory>
@@ -152,7 +154,7 @@ int convert_for_printf(Session *s)
 }
 
 // save file descriptors for important stuff
-constexpr int SOFT_LIMIT = FD_SETSIZE - 50;
+constexpr int SOFT_LIMIT = io::MAX_SOCKETS - 50;
 
 // socket timeout to establish a full connection in seconds
 constexpr int CONNECT_TIMEOUT = 15;
