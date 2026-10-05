@@ -85,7 +85,7 @@ const SkillInfo* SkillDB::get(const int id)
 
 bool SkillDB::modifiable(const int id)
 {
-    return (id >= 0 && id < size() ? &skill_db[id].modifiable : false);
+    return (id >= 0 && id < size() ? skill_db[id].modifiable : false);
 }
 
 int SkillDB::size()
