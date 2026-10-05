@@ -529,6 +529,8 @@ IF (WIN32)
         platform/win32/winver.h
         platform/win32/aethyra.rc
     )
+    # aethyra.rc names its icon relative to the source root.
+    SET(CMAKE_RC_FLAGS "${CMAKE_RC_FLAGS} --include-dir=${CMAKE_SOURCE_DIR}")
 ENDIF ()
 
 SET (PROGRAMS aethyra)

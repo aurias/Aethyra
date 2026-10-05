@@ -22,6 +22,7 @@
 #include <fstream>
 #include <random>
 #include <sstream>
+#include <vector>
 
 #include <physfs.h>
 #include <SDL.h>

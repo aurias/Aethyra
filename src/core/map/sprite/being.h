@@ -181,6 +181,12 @@ class Being : public Sprite
         virtual void setDestination(const Uint16 &destX, const Uint16 &destY);
 
         /**
+         * Moves the being instantly to the given tile (a dash or a
+         * knockback), dropping any walk in progress.
+         */
+        virtual void slideTo(const Uint16 &x, const Uint16 &y);
+
+        /**
          * Puts a "speech balloon" above this being for the specified amount
          * of time.
          *

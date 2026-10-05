@@ -448,6 +448,19 @@ bool InputManager::handleKeyboardInput(const SDL_Event &event)
                             used = true;
                         }
                         break;
+                    // Gale hue skills
+                    case KeyboardConfig::KEY_SKILL_DASH:
+                        player_node->useHueSkill(1);
+                        used = true;
+                        break;
+                    case KeyboardConfig::KEY_SKILL_GUST:
+                        player_node->useHueSkill(2);
+                        used = true;
+                        break;
+                    case KeyboardConfig::KEY_SKILL_WIND_SCYTHE:
+                        player_node->useHueSkill(3);
+                        used = true;
+                        break;
                     // Player sit action
                     case KeyboardConfig::KEY_SIT:
                         player_node->toggleSit();

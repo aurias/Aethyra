@@ -61,6 +61,7 @@ BeingHandler::BeingHandler(bool enableSync):
         SMSG_PLAYER_UPDATE_2,
         SMSG_PLAYER_MOVE,
         SMSG_PLAYER_STOP,
+        SMSG_AETHYRA_BEING_SLIDE,
         SMSG_PLAYER_MOVE_TO_ATTACK,
         0x0119,
         0
@@ -500,6 +501,19 @@ void BeingHandler::handleMessage(MessageIn *msg)
                         dstBeing->setAction(Being::STAND);
                     }
                 }
+            }
+            break;
+
+        case SMSG_AETHYRA_BEING_SLIDE:
+            // A dash or knockback: unlike SMSG_PLAYER_STOP this applies to
+            // the local player too, since the server moved them.
+            id = msg->readInt32();
+            dstBeing = beingManager->findBeing(id);
+            if (dstBeing)
+            {
+                const Uint16 x = msg->readInt16();
+                const Uint16 y = msg->readInt16();
+                dstBeing->slideTo(x, y);
             }
             break;
 

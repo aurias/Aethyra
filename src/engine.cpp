@@ -246,7 +246,7 @@ void Engine::initWindow()
     HICON icon = LoadIcon(GetModuleHandle(NULL), "A");
 
     if (icon)
-        SetClassLong(pInfo.window, GCL_HICON, (LONG) icon);
+        SetClassLongPtr(pInfo.window, GCLP_HICON, (LONG_PTR) icon);
 #else
     icon = IMG_Load(PKG_DATADIR "data/icons/aethyra.png");
     if (icon)

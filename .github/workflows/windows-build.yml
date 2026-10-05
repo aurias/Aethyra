@@ -74,7 +74,7 @@ jobs:
       - name: Build aethyra.exe
         run: |
           cmake -S . -B build/client -G Ninja -DCMAKE_BUILD_TYPE=Release
-          cmake --build build/client
+          cmake --build build/client -- -k 0
 
       - name: Collect the client and its DLLs
         run: |

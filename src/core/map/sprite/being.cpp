@@ -123,6 +123,18 @@ void Being::setDestination(const Uint16 &destX, const Uint16 &destY)
         setPath(mMap->findPath(mX, mY, destX, destY));
 }
 
+void Being::slideTo(const Uint16 &x, const Uint16 &y)
+{
+    mPath.clear();
+    mX = x;
+    mY = y;
+    if (mAction == WALK)
+    {
+        mFrame = 0;
+        setAction(STAND);
+    }
+}
+
 void Being::clearPath()
 {
     mPath.clear();

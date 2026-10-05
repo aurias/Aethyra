@@ -58,7 +58,7 @@ StatusWindow::StatusWindow(LocalPlayer *player):
     mXpLabel = new Label(_("Exp:"));
     mXpBar = new ProgressBar(0.0f, 80, 15, gcn::Color(143, 192, 211));
 
-    mMpLabel = new Label(_("MP:"));
+    mMpLabel = new Label(_("Gale:"));
     mMpBar = new ProgressBar(0.0f, 100, 20, gcn::Color(140, 70, 230));
     mMpBar->addColor(110, 85, 230);
     mMpBar->addColor(26, 100, 230);

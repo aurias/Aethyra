@@ -46,9 +46,10 @@ MiniStatusWindow::MiniStatusWindow():
     mHpBar->addColor(230, 171, 34);
     mHpBar->addColor(0, 171, 34);
 
-    mMpBar = new ProgressBar(0.0f, 100, 20, gcn::Color(140, 70, 230));
-    mMpBar->addColor(110, 85, 230);
-    mMpBar->addColor(26, 100, 230);
+    // The MP pool is Gale energy: wind greens rather than mana blue.
+    mMpBar = new ProgressBar(0.0f, 100, 20, gcn::Color(90, 160, 140));
+    mMpBar->addColor(110, 190, 160);
+    mMpBar->addColor(150, 220, 190);
 
     mXpBar = new ProgressBar(0.0f, 100, 20, gcn::Color(143, 192, 211));
 

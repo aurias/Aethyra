@@ -413,6 +413,26 @@ void LocalPlayer::setDestination(const Uint16 &x, const Uint16 &y)
     Being::setDestination(x, y);
 }
 
+void LocalPlayer::slideTo(const Uint16 &x, const Uint16 &y)
+{
+    // Forget the walk the server just cut short, so it is not resent.
+    mDestX = x;
+    mDestY = y;
+    mPickUpTarget = NULL;
+    mGoingToTarget = false;
+    Being::slideTo(x, y);
+}
+
+void LocalPlayer::useHueSkill(const int skill)
+{
+    if (mAction == DEAD)
+        return;
+
+    MessageOut outMsg(CMSG_AETHYRA_USE_SKILL);
+    outMsg.writeInt8(skill);
+    outMsg.writeInt8(mDirection);
+}
+
 void LocalPlayer::setWalkingDir(const int dir)
 {
     if (mWalkingDir != dir)

@@ -171,6 +171,14 @@ class LocalPlayer : public Player
          */
         virtual void setDestination(const Uint16 &x, const Uint16 &y);
 
+        virtual void slideTo(const Uint16 &x, const Uint16 &y);
+
+        /**
+         * Uses a hue skill in the direction the player faces:
+         * 1 = Dash, 2 = Gust, 3 = Wind Scythe.
+         */
+        void useHueSkill(const int skill);
+
         /**
          * Sets a new direction to keep walking in.
          */
