@@ -73,3 +73,17 @@ struct mmo_char_server
 };
 } // namespace login
 } // namespace tmwa
+
+#include "../range/slice.hpp"
+#include "../strings/zstring.hpp"
+
+namespace tmwa
+{
+namespace login
+{
+/// Start this service: load its config and open its listening port.
+int do_init(Slice<ZString> argv);
+/// Shut this service down; registered with atexit() once init succeeded.
+void term_func(void);
+} // namespace login
+} // namespace tmwa

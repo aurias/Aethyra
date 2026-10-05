@@ -45,6 +45,5 @@ namespace tmwa
         std::vector<AuthData> auth_data;
         DMap<AccountId, GmLevel> gm_account_db;
         // For forked DB writes
-        pid_t pid = 0;
     } // namespace login
 } // namespace tmwa

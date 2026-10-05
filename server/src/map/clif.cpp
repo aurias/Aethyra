@@ -140,7 +140,7 @@ void clif_delete(Session *s)
 {
     assert (s != char_session);
 
-    dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
+    dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(session_data_as<map_session_data>(s->session_data.get()));
     if (sd && sd->state.auth)
     {
         pc_logout(sd);
@@ -169,7 +169,7 @@ int clif_countusers(void)
         Session *s = get_session(i);
         if (!s)
             continue;
-        dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
+        dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(session_data_as<map_session_data>(s->session_data.get()));
         if (sd && sd->state.auth && !sd->state.connect_new && !(battle_config.hide_GM_session && pc_isGM(sd)))
             users++;
     }
@@ -187,7 +187,7 @@ int clif_foreachclient(std::function<void (dumb_ptr<map_session_data>)> func)
         Session *s = get_session(i);
         if (!s)
             continue;
-        dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
+        dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(session_data_as<map_session_data>(s->session_data.get()));
         if (sd && sd->state.auth && !sd->state.connect_new)
             func(sd);
     }
@@ -299,7 +299,7 @@ int clif_send(const Buffer& buf, dumb_ptr<block_list> bl, SendWho type, ClientVe
                 Session *s = get_session(i);
                 if (!s)
                     continue;
-                dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
+                dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(session_data_as<map_session_data>(s->session_data.get()));
                 if (sd && sd->state.auth && !sd->state.connect_new)
                 {
                     {
@@ -316,7 +316,7 @@ int clif_send(const Buffer& buf, dumb_ptr<block_list> bl, SendWho type, ClientVe
                     Session *s = get_session(i);
                     if (!s)
                         continue;
-                    dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
+                    dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(session_data_as<map_session_data>(s->session_data.get()));
                     if (sd && sd->state.auth && !sd->state.connect_new && sd->bl_m == bl->bl_m)
                     {
                         {
@@ -406,7 +406,7 @@ int clif_send(const Buffer& buf, dumb_ptr<block_list> bl, SendWho type, ClientVe
                     Session *s = get_session(i);
                     if (!s)
                         continue;
-                    dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
+                    dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(session_data_as<map_session_data>(s->session_data.get()));
                     if (sd && sd->state.auth && !sd->state.connect_new)
                     {
                         if (sd->partyspy == p.party_id)
@@ -3560,7 +3560,7 @@ int clif_specialeffect(dumb_ptr<block_list> bl, int type, int flag)
             Session *s = get_session(i);
             if (!s)
                 continue;
-            dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
+            dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(session_data_as<map_session_data>(s->session_data.get()));
             if (sd && sd->state.auth && !sd->state.connect_new && sd->bl_m == bl->bl_m)
                 clif_specialeffect(sd, type, 1);
         }
@@ -3769,8 +3769,8 @@ int clif_send_online_list(dumb_ptr<map_session_data> sd)
         if (!s || !s->session_data)
             continue;
 
-        dumb_ptr<map_session_data> p_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
-        if (p_sd->state.auth && !bool(p_sd->status.option & Opt0::HIDE)) {
+        dumb_ptr<map_session_data> p_sd = dumb_ptr<map_session_data>(session_data_as<map_session_data>(s->session_data.get()));
+        if (p_sd && p_sd->state.auth && !bool(p_sd->status.option & Opt0::HIDE)) {
             Packet_Repeat<0x0211> info;
             info.account_id = p_sd->status_key.account_id;
             info.char_name = p_sd->status_key.name;
@@ -5983,7 +5983,7 @@ uint16_t clif_check_packet_flood(Session *s, int cmd)
     if (packet_avail(s) < len)
         return 0;
 
-    dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
+    dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(session_data_as<map_session_data>(s->session_data.get()));
     tick_t tick = gettick();
 
     // sd will not be set if the client hasn't requested
@@ -6160,7 +6160,7 @@ void clif_parse(Session *s)
 
     while (rv == RecvResult::Complete && packet_peek_id(s, &packet_id))
     {
-        sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
+        sd = dumb_ptr<map_session_data>(session_data_as<map_session_data>(s->session_data.get()));
 
         if (!sd || (sd && !sd->state.auth))
         {

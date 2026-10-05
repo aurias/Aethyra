@@ -22,12 +22,8 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#include <sys/wait.h>
-
 #include <netdb.h>
 #include <unistd.h>
-
-#include <sys/resource.h>
 
 #include <cassert>
 #include <cstdlib>
@@ -107,10 +103,6 @@ struct char_session_data : SessionData
 };
 } // namespace char_
 
-void SessionDeleter::operator()(SessionData *sd)
-{
-    really_delete1 static_cast<char_::char_session_data *>(sd);
-}
 
 namespace char_
 {
@@ -541,34 +533,10 @@ void mmo_char_sync(void)
 static
 void mmo_char_sync_timer(TimerData *, tick_t)
 {
-    if (pid != 0)
-    {
-        int status;
-        pid_t temp = waitpid(pid, &status, WNOHANG);
-
-        // Need to check status too?
-        if (temp == 0)
-        {
-            return;
-        }
-    }
-
-    // This can take a lot of time. Fork a child to handle the work and return at once
-    // If we're unable to fork just continue running the function normally
-    if ((pid = fork()) > 0) {
-        return;
-    }
-
-    // If we're a child, run as a lower priority process
-    if (pid == 0)
-        setpriority(PRIO_PROCESS, getpid(), 10);
-
+    // Aethyra: saved in place rather than in a forked child; see
+    // check_auth_sync() in login.cpp.
     mmo_char_sync();
     inter_save();
-
-    // If we're a child we should suicide now.
-    if (pid == 0)
-        _exit(0);
 }
 
 //-----------------------------------
@@ -578,7 +546,7 @@ static
 CharPair *make_new_char(Session *s, CharName name, const Stats6& stats, uint8_t slot, uint16_t hair_color, uint16_t hair_style, short& error_code)
 {
     // ugh
-    char_session_data *sd = static_cast<char_session_data *>(s->session_data.get());
+    char_session_data *sd = session_data_as<char_session_data>(s->session_data.get());
 
     // remove control characters from the name
     if (!name.to__actual().is_print())
@@ -1134,7 +1102,7 @@ void disconnect_player(AccountId accound_id)
         Session *s = get_session(i);
         if (!s)
             continue;
-        struct char_session_data *sd = static_cast<char_session_data *>(s->session_data.get());
+        struct char_session_data *sd = session_data_as<char_session_data>(s->session_data.get());
         if (sd)
         {
             if (sd->account_id == accound_id)
@@ -1178,7 +1146,7 @@ void parse_tologin(Session *ls)
 {
     assert (ls == login_session);
 
-    char_session_data *sd = static_cast<char_session_data *>(ls->session_data.get());
+    char_session_data *sd = session_data_as<char_session_data>(ls->session_data.get());
 
     RecvResult rv = RecvResult::Complete;
     uint16_t packet_id;
@@ -1230,7 +1198,7 @@ void parse_tologin(Session *ls)
                     Session *s2 = get_session(i);
                     if (!s2)
                         continue;
-                    sd = static_cast<char_session_data *>(s2->session_data.get());
+                    sd = session_data_as<char_session_data>(s2->session_data.get());
                     if (sd && sd->account_id == acc)
                     {
                         if (fixed.invalid != 0)
@@ -1332,7 +1300,7 @@ void parse_tologin(Session *ls)
                     Session *s2 = get_session(i);
                     if (!s2)
                         continue;
-                    sd = static_cast<char_session_data *>(s2->session_data.get());
+                    sd = session_data_as<char_session_data>(s2->session_data.get());
                     if (sd)
                     {
                         if (sd->account_id == acc)
@@ -1577,7 +1545,7 @@ void parse_tologin(Session *ls)
                         Session *s2 = get_session(i);
                         if (!s2)
                             continue;
-                        sd = static_cast<char_session_data *>(s2->session_data.get());
+                        sd = session_data_as<char_session_data>(s2->session_data.get());
                         if (sd)
                         {
                             if (sd->account_id == acc)
@@ -2175,7 +2143,7 @@ void parse_frommap(Session *ms)
                     Session *s2 = get_session(i);
                     if (!s2)
                         continue;
-                    struct char_session_data *sd = static_cast<char_session_data *>(s2->session_data.get());
+                    struct char_session_data *sd = session_data_as<char_session_data>(s2->session_data.get());
 
                     if (sd && sd->account_id == fixed.account_id &&
                         sd->login_id1 == fixed.login_id1 &&
@@ -2340,7 +2308,7 @@ void parse_char(Session *s)
         return;
     }
 
-    char_session_data *sd = static_cast<char_session_data *>(s->session_data.get());
+    char_session_data *sd = session_data_as<char_session_data>(s->session_data.get());
 
     RecvResult rv = RecvResult::Complete;
     uint16_t packet_id;
@@ -2393,7 +2361,7 @@ void parse_char(Session *s)
                     if (sd == nullptr)
                     {
                         s->session_data = make_unique<char_session_data, SessionDeleter>();
-                        sd = static_cast<char_session_data *>(s->session_data.get());
+                        sd = session_data_as<char_session_data>(s->session_data.get());
                         sd->email = stringish<AccountEmail>("no mail"_s);  // put here a mail without '@' to refuse deletion if we don't receive the e-mail
                     }
                     sd->account_id = account_id;
@@ -2818,7 +2786,7 @@ bool char_confs(io::Spanned<XString> key, io::Spanned<ZString> value)
 }
 } // namespace char_
 
-void term_func(void)
+void char_::term_func(void)
 {
     using namespace tmwa::char_;
     // write online players files with no player
@@ -2866,7 +2834,7 @@ void party_corruption_fix()
     }
 }
 
-int do_init(Slice<ZString> argv)
+int char_::do_init(Slice<ZString> argv)
 {
     using namespace tmwa::char_;
     ZString argv0 = argv.pop_front();

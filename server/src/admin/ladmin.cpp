@@ -64,14 +64,6 @@
 
 namespace tmwa
 {
-DIAG_PUSH();
-DIAG_I(missing_noreturn);
-void SessionDeleter::operator()(SessionData *)
-{
-    assert(false && "ladmin does not have sessions"_s);
-}
-DIAG_POP();
-
 namespace admin
 {
 #define Iprintf if (tmwa::admin::eathena_interactive_session) PRINTF
@@ -2735,7 +2727,7 @@ bool admin_confs(io::Spanned<XString> key, io::Spanned<ZString> value)
 //--------------------------------------
 // Function called at exit of the server
 //--------------------------------------
-void term_func(void)
+void admin::term_func(void)
 {
     if (admin::already_exit_function == 0)
     {
@@ -2751,7 +2743,7 @@ void term_func(void)
 //------------------------
 // Main function of ladmin
 //------------------------
-int do_init(Slice<ZString> argv)
+int admin::do_init(Slice<ZString> argv)
 {
     ZString argv0 = argv.pop_front();
     bool loaded_config_yet = false;

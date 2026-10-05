@@ -30,5 +30,5 @@ namespace tmwa
 
 int main(int argc, char **argv)
 {
-    return tmwa_main(argc, argv);
+    return tmwa_main(argc, argv, tmwa::char_::do_init, tmwa::char_::term_func);
 }

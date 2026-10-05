@@ -33,15 +33,16 @@ namespace tmwa
 /// When this is cleared, the server exits gracefully.
 extern volatile bool runflag;
 
-/// This is an external function defined by each server
-/// This function must register stuff for the parse loop
-extern int do_init(Slice<ZString>);
+/// Starts a service: must register stuff for the parse loop.
+/// Each server (and the combined Aethyra server) supplies its own.
+typedef int (*InitFunc)(Slice<ZString>);
 
 /// Cleanup function called whenever a signal kills us
 /// or when if we manage to exit() gracefully.
-extern void term_func(void);
+typedef void (*TermFunc)(void);
 } // namespace tmwa
 
 /// grumble grumble stupid intertwined includes mumble mumble
 __attribute__((warn_unused_result))
-extern int tmwa_main(int argc, char **argv);
+extern int tmwa_main(int argc, char **argv,
+        tmwa::InitFunc do_init, tmwa::TermFunc term_func);

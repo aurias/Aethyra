@@ -117,7 +117,8 @@ void check_caps()
     }
 }
 
-int tmwa_main(int argc, char **argv)
+int tmwa_main(int argc, char **argv,
+        tmwa::InitFunc do_init, tmwa::TermFunc term_func)
 {
     // run before anything else (except global constructors)
     check_caps();

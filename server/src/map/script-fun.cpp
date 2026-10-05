@@ -4077,7 +4077,7 @@ void builtin_pvpon(ScriptState *st)
             Session *s = get_session(i);
             if (!s)
                 continue;
-            dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
+            dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(session_data_as<map_session_data>(s->session_data.get()));
             if (pl_sd && pl_sd->state.auth)
             {
                 if (m == pl_sd->bl_m && !pl_sd->pvp_timer)
@@ -4115,7 +4115,7 @@ void builtin_pvpoff(ScriptState *st)
             Session *s = get_session(i);
             if (!s)
                 continue;
-            dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
+            dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(session_data_as<map_session_data>(s->session_data.get()));
             if (pl_sd && pl_sd->state.auth)
             {
                 if (m == pl_sd->bl_m)

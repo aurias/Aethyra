@@ -177,7 +177,7 @@ int chrif_changemapserver(dumb_ptr<map_session_data> sd,
         Session *s = get_session(i);
         if (!s)
             continue;
-        if (dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get())) == sd)
+        if (dumb_ptr<map_session_data>(session_data_as<map_session_data>(s->session_data.get())) == sd)
         {
             assert (s == sd->sess);
             s_ip = s->client_ip;
@@ -287,7 +287,7 @@ int chrif_authreq(dumb_ptr<map_session_data> sd)
         Session *s = get_session(i);
         if (!s)
             continue;
-        if (dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get())) == sd)
+        if (dumb_ptr<map_session_data>(session_data_as<map_session_data>(s->session_data.get())) == sd)
         {
             assert (s == sd->sess);
             Packet_Fixed<0x2afc> fixed_fc;
@@ -321,7 +321,7 @@ int chrif_charselectreq(dumb_ptr<map_session_data> sd)
         Session *s = get_session(i);
         if (!s)
             continue;
-        if (dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get())) == sd)
+        if (dumb_ptr<map_session_data>(session_data_as<map_session_data>(s->session_data.get())) == sd)
         {
             assert (s == sd->sess);
             s_ip = s->client_ip;
@@ -1060,7 +1060,7 @@ void send_users_tochar(TimerData *, tick_t)
         Session *s = get_session(i);
         if (!s)
             continue;
-        dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
+        dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(session_data_as<map_session_data>(s->session_data.get()));
         if (sd && sd->state.auth && !sd->state.connect_new &&
             !((battle_config.hide_GM_session
                || sd->state.shroud_active

@@ -86,10 +86,6 @@
 
 namespace tmwa
 {
-void SessionDeleter::operator()(SessionData *sd)
-{
-    really_delete1 static_cast<map::map_session_data *>(sd);
-}
 
 namespace map
 {
@@ -869,8 +865,8 @@ dumb_ptr<map_session_data> map_id2sd(BlockId id)
             continue;
         if (s->session_data)
         {
-            map_session_data *sd = static_cast<map_session_data *>(s->session_data.get());
-            if (sd->bl_id == id)
+            map_session_data *sd = session_data_as<map_session_data>(s->session_data.get());
+            if (sd && sd->bl_id == id)
                 return dumb_ptr<map_session_data>(sd);
         }
     }
@@ -907,7 +903,7 @@ dumb_ptr<map_session_data> map_get_session(io::FD i)
         Session *s = get_session(i);
         if (!s)
             return nullptr;
-        map_session_data *d = static_cast<map_session_data *>(s->session_data.get());
+        map_session_data *d = session_data_as<map_session_data>(s->session_data.get());
         if (d && d->state.auth && !d->state.connect_new)
             return dumb_ptr<map_session_data>(d);
     }
@@ -974,7 +970,7 @@ dumb_ptr<map_session_data> map_nick2sd(CharName nick)
         Session *s = get_session(i);
         if (!s)
             continue;
-        map_session_data *pl_sd = static_cast<map_session_data *>(s->session_data.get());
+        map_session_data *pl_sd = session_data_as<map_session_data>(s->session_data.get());
         if (pl_sd && pl_sd->state.auth)
         {
             {
@@ -1530,7 +1526,7 @@ int map_scriptcont(dumb_ptr<map_session_data> sd, BlockId id)
  * map鯖終了時処理
  *------------------------------------------
  */
-void term_func(void)
+void map::term_func(void)
 {
     using namespace tmwa::map;
     for (auto& mit : maps_db)
@@ -1564,7 +1560,7 @@ void term_func(void)
  * Map-Server Init and Command-line Arguments [Valaris]
  *------------------------------------------------------
  */
-int do_init(Slice<ZString> argv)
+int map::do_init(Slice<ZString> argv)
 {
     using namespace tmwa::map;
 

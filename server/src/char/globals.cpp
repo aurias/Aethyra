@@ -56,7 +56,6 @@ namespace tmwa
         // to update online files when we receiving information from a server (not less than 8 seconds)
         TimeT update_online;
         // For forked DB writes
-        pid_t pid = 0;
 
         Map<AccountId, accreg> accreg_db;
 

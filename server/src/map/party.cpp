@@ -160,7 +160,7 @@ int party_check_member(PartyPair p)
         Session *s = get_session(i);
         if (!s)
             continue;
-        map_session_data *sd = static_cast<map_session_data *>(s->session_data.get());
+        map_session_data *sd = session_data_as<map_session_data>(s->session_data.get());
         if (sd && sd->state.auth)
         {
             if (sd->status.party_id == p.party_id)
@@ -200,7 +200,7 @@ int party_recv_noinfo(PartyId party_id)
         Session *s = get_session(i);
         if (!s)
             continue;
-        map_session_data *sd = static_cast<map_session_data *>(s->session_data.get());
+        map_session_data *sd = session_data_as<map_session_data>(s->session_data.get());
         if (sd && sd->state.auth)
         {
             if (sd->status.party_id == party_id)

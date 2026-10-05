@@ -45,14 +45,25 @@
 
 namespace tmwa
 {
+/// Per-service session state derives from this. The destructor is virtual
+/// so sessions of different services can share one process.
 struct SessionData
 {
+    virtual ~SessionData() = default;
 };
 struct SessionDeleter
 {
-    // defined per-server
     void operator()(SessionData *sd);
 };
+
+/// The session's data if it belongs to service type T, else nullptr.
+/// All services share one session table in the combined server, so code
+/// walking every session must skip the other services' sessions.
+template<class T>
+T *session_data_as(SessionData *sd)
+{
+    return dynamic_cast<T *>(sd);
+}
 
 struct SessionIO
 {

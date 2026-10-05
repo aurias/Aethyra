@@ -47,7 +47,6 @@ namespace tmwa
         extern std::vector<GM_Account> gm_accounts;
         extern std::vector<Session *> online_chars;
         extern TimeT update_online;
-        extern pid_t pid;
 
         extern Map<AccountId, accreg> accreg_db;
 

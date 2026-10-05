@@ -33,5 +33,5 @@ namespace map
 
 int main(int argc, char **argv)
 {
-    return tmwa_main(argc, argv);
+    return tmwa_main(argc, argv, tmwa::map::do_init, tmwa::map::term_func);
 }

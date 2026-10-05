@@ -856,7 +856,7 @@ ATCE atcommand_who(Session *s, dumb_ptr<map_session_data> sd,
         Session *s2 = get_session(i);
         if (!s2)
             continue;
-        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
+        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(session_data_as<map_session_data>(s2->session_data.get()));
         if (pl_sd && pl_sd->state.auth)
         {
             GmLevel pl_gm_level = pc_isGM(pl_sd);
@@ -917,7 +917,7 @@ ATCE atcommand_whogroup(Session *s, dumb_ptr<map_session_data> sd,
         Session *s2 = get_session(i);
         if (!s2)
             continue;
-        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
+        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(session_data_as<map_session_data>(s2->session_data.get()));
         if (pl_sd && pl_sd->state.auth)
         {
             GmLevel pl_gm_level = pc_isGM(pl_sd);
@@ -979,7 +979,7 @@ ATCE atcommand_whomap(Session *s, dumb_ptr<map_session_data> sd,
         Session *s2 = get_session(i);
         if (!s2)
             continue;
-        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
+        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(session_data_as<map_session_data>(s2->session_data.get()));
         if (pl_sd && pl_sd->state.auth)
         {
             GmLevel pl_gm_level = pc_isGM(pl_sd);
@@ -1037,7 +1037,7 @@ ATCE atcommand_whomapgroup(Session *s, dumb_ptr<map_session_data> sd,
         Session *s2 = get_session(i);
         if (!s2)
             continue;
-        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
+        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(session_data_as<map_session_data>(s2->session_data.get()));
         if (pl_sd && pl_sd->state.auth)
         {
             GmLevel pl_gm_level = pc_isGM(pl_sd);
@@ -1095,7 +1095,7 @@ ATCE atcommand_whogm(Session *s, dumb_ptr<map_session_data> sd,
         Session *s2 = get_session(i);
         if (!s2)
             continue;
-        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
+        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(session_data_as<map_session_data>(s2->session_data.get()));
         if (pl_sd && pl_sd->state.auth)
         {
             GmLevel pl_gm_level = pc_isGM(pl_sd);
@@ -1646,7 +1646,7 @@ ATCE atcommand_pvpoff(Session *s, dumb_ptr<map_session_data> sd,
             Session *s2 = get_session(i);
             if (!s2)
                 continue;
-            dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
+            dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(session_data_as<map_session_data>(s2->session_data.get()));
             if (pl_sd && pl_sd->state.auth)
             {
                 if (sd->bl_m == pl_sd->bl_m)
@@ -1780,7 +1780,7 @@ ATCE atcommand_pvpon(Session *s, dumb_ptr<map_session_data> sd,
             Session *s2 = get_session(i);
             if (!s2)
                 continue;
-            dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
+            dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(session_data_as<map_session_data>(s2->session_data.get()));
             if (pl_sd && pl_sd->state.auth)
             {
                 if (sd->bl_m == pl_sd->bl_m && !pl_sd->pvp_timer)
@@ -2706,7 +2706,7 @@ ATCE atcommand_character_stats_all(Session *s, dumb_ptr<map_session_data>,
         Session *s2 = get_session(i);
         if (!s2)
             continue;
-        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
+        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(session_data_as<map_session_data>(s2->session_data.get()));
         if (pl_sd && pl_sd->state.auth)
         {
             AString gmlevel;
@@ -2969,7 +2969,7 @@ ATCE atcommand_doom(Session *s, dumb_ptr<map_session_data> sd,
         Session *s2 = get_session(i);
         if (!s2)
             continue;
-        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
+        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(session_data_as<map_session_data>(s2->session_data.get()));
         if (pl_sd && !pl_sd->state.connect_new
             && pl_sd->state.auth && s2 != s
             && pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
@@ -2993,7 +2993,7 @@ ATCE atcommand_doommap(Session *s, dumb_ptr<map_session_data> sd,
         Session *s2 = get_session(i);
         if (!s2)
             continue;
-        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
+        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(session_data_as<map_session_data>(s2->session_data.get()));
         if (pl_sd && !pl_sd->state.connect_new
             && pl_sd->state.auth && s2 != s && sd->bl_m == pl_sd->bl_m
             && pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
@@ -3032,7 +3032,7 @@ ATCE atcommand_raise(Session *s, dumb_ptr<map_session_data>,
         Session *s2 = get_session(i);
         if (!s2)
             continue;
-        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
+        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(session_data_as<map_session_data>(s2->session_data.get()));
         atcommand_raise_sub(pl_sd);
     }
     clif_displaymessage(s, "Mercy has been granted."_s);
@@ -3049,7 +3049,7 @@ ATCE atcommand_raisemap(Session *s, dumb_ptr<map_session_data> sd,
         Session *s2 = get_session(i);
         if (!s2)
             continue;
-        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
+        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(session_data_as<map_session_data>(s2->session_data.get()));
         if (pl_sd
             && pl_sd->state.auth && sd->bl_m == pl_sd->bl_m)
             atcommand_raise_sub(pl_sd);
@@ -3261,7 +3261,7 @@ ATCE atcommand_kickall(Session *s, dumb_ptr<map_session_data> sd,
         Session *s2 = get_session(i);
         if (!s2)
             continue;
-        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
+        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(session_data_as<map_session_data>(s2->session_data.get()));
         if (pl_sd
             && pl_sd->state.auth && pc_isGM(sd).overwhelms(pc_isGM(pl_sd)))
         {
@@ -3479,7 +3479,7 @@ ATCE atcommand_mapexit(Session *, dumb_ptr<map_session_data> sd,
         Session *s2 = get_session(i);
         if (!s2)
             continue;
-        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
+        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(session_data_as<map_session_data>(s2->session_data.get()));
         if (pl_sd && pl_sd->state.auth)
         {
             if (sd->status_key.account_id != pl_sd->status_key.account_id)
@@ -3886,7 +3886,7 @@ ATCE atcommand_recallall(Session *s, dumb_ptr<map_session_data> sd,
         Session *s2 = get_session(i);
         if (!s2)
             continue;
-        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
+        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(session_data_as<map_session_data>(s2->session_data.get()));
         if (pl_sd
             && pl_sd->state.auth
             && sd->status_key.account_id != pl_sd->status_key.account_id
@@ -3945,7 +3945,7 @@ ATCE atcommand_partyrecall(Session *s, dumb_ptr<map_session_data> sd,
                 Session *s2 = get_session(i);
                 if (!s2)
                     continue;
-                dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
+                dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(session_data_as<map_session_data>(s2->session_data.get()));
                 if (pl_sd && pl_sd->state.auth && !pl_sd->state.connect_new
                     && sd->status_key.account_id != pl_sd->status_key.account_id
                     && pl_sd->status.party_id == p.party_id)
@@ -4040,7 +4040,7 @@ ATCE atcommand_mapinfo(Session *s, dumb_ptr<map_session_data> sd,
                 Session *s2 = get_session(i);
                 if (!s2)
                     continue;
-                dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
+                dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(session_data_as<map_session_data>(s2->session_data.get()));
                 if (pl_sd && pl_sd->state.auth
                     && pl_sd->mapname_ == map_name)
                 {
@@ -4441,7 +4441,7 @@ ATCE atcommand_effect(Session *s, dumb_ptr<map_session_data> sd,
             Session *s2 = get_session(i);
             if (!s2)
                 continue;
-            dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
+            dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(session_data_as<map_session_data>(s2->session_data.get()));
             if (pl_sd && pl_sd->state.auth && !pl_sd->state.connect_new)
             {
                 clif_specialeffect(pl_sd, type, flag);
@@ -5603,7 +5603,7 @@ ATCE atcommand_ipcheck(Session *s, dumb_ptr<map_session_data>,
         Session *s2 = get_session(i);
         if (!s2)
             continue;
-        pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
+        pl_sd = dumb_ptr<map_session_data>(session_data_as<map_session_data>(s2->session_data.get()));
         if (pl_sd && pl_sd->state.auth)
         {
             // Is checking GM levels really needed here?
@@ -5631,7 +5631,7 @@ ATCE atcommand_doomspot(Session *s, dumb_ptr<map_session_data> sd,
         Session *s2 = get_session(i);
         if (!s2)
             continue;
-        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
+        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(session_data_as<map_session_data>(s2->session_data.get()));
         if (pl_sd && !pl_sd->state.connect_new
             && pl_sd->state.auth && s2 != s && sd->bl_m == pl_sd->bl_m
             && sd->bl_x == pl_sd->bl_x && sd->bl_y == pl_sd->bl_y

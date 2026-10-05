@@ -21,12 +21,8 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <sys/wait.h>
-
 #include <netdb.h>
 #include <unistd.h>
-
-#include <sys/resource.h>
 
 #include <ctime>
 
@@ -94,10 +90,6 @@ struct login_session_data : SessionData
 };
 } // namespace login
 
-void SessionDeleter::operator()(SessionData *sd)
-{
-    really_delete1 static_cast<login::login_session_data *>(sd);
-}
 
 // out of namespace because ADL is dumb
 bool extract(XString str, login::ACO *aco)
@@ -584,34 +576,10 @@ void mmo_auth_sync(void)
 static
 void check_auth_sync(TimerData *, tick_t)
 {
-    if (pid != 0)
-    {
-        int status;
-        pid_t temp = waitpid(pid, &status, WNOHANG);
-
-        // Need to check status too?
-        if (temp == 0)
-        {
-            return;
-        }
-    }
-
-    // This can take a lot of time. Fork a child to handle the work and return at once
-    // If we're unable to fork just continue running the function normally
-    if ((pid = fork()) > 0)
-        return;
-
-    // If we're a child, run as a lower priority process
-    if (pid == 0)
-        setpriority(PRIO_PROCESS, getpid(), 10);
-
+    // Aethyra: upstream forked a child to write the accounts file. All
+    // services now share one process (and Windows has no fork), and a
+    // co-op world's account file is small, so save in place.
     mmo_auth_sync();
-
-    // If we're a child we should suicide now.
-    if (pid == 0)
-        _exit(0);
-
-    return;
 }
 
 
@@ -1257,7 +1225,7 @@ void parse_fromchar(Session *s)
                     Session *s2 = get_session(i);
                     if (!s2)
                         continue;
-                    struct login_session_data *sd = static_cast<login_session_data *>(s2->session_data.get());
+                    struct login_session_data *sd = session_data_as<login_session_data>(s2->session_data.get());
 
                     if (sd && sd->account_id == fixed.account_id &&
                         sd->login_id1 == fixed.login_id1 &&
@@ -2742,7 +2710,7 @@ void parse_login(Session *s)
                         {
                             { // this will be verified after we receive 0x2742
                                 s->session_data = make_unique<login_session_data, SessionDeleter>();
-                                struct login_session_data *sd = static_cast<login_session_data *>(s->session_data.get());
+                                struct login_session_data *sd = session_data_as<login_session_data>(s->session_data.get());
                                 sd->account_id = account.account_id;
                                 sd->login_id1 = account.login_id1;
                                 sd->login_id2 = account.login_id2;
@@ -3260,7 +3228,7 @@ bool login_confs(io::Spanned<XString> key, io::Spanned<ZString> value)
 //--------------------------------------
 // Function called at exit of the server
 //--------------------------------------
-void term_func(void)
+void login::term_func(void)
 {
     login::mmo_auth_sync();
 
@@ -3280,7 +3248,7 @@ void term_func(void)
 //------------------------------
 // Main function of login-server
 //------------------------------
-int do_init(Slice<ZString> argv)
+int login::do_init(Slice<ZString> argv)
 {
     ZString argv0 = argv.pop_front();
     bool loaded_config_yet = false;

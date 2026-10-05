@@ -84,6 +84,11 @@ Session::Session(SessionIO io, SessionParsers p)
     set_io(io);
     set_parsers(p);
 }
+void SessionDeleter::operator()(SessionData *sd)
+{
+    really_delete1 sd;
+}
+
 void Session::set_io(SessionIO io)
 {
     func_send = io.func_send;

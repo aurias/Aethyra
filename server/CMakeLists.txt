@@ -167,6 +167,21 @@ add_executable(tmwa-map ${map_SOURCES}
   )
 target_link_libraries(tmwa-map tmwa-shared)
 
+# aethyra-server: login, char and map services in one process, so the
+# client can host a world by launching a single program.
+set(aethyra_SERVICE_SOURCES ${login_SOURCES} ${char_SOURCES} ${map_SOURCES})
+list(FILTER aethyra_SERVICE_SOURCES EXCLUDE REGEX ".*/src/(login|char|map)/main\\.cpp$")
+add_executable(aethyra-server src/aethyra/main.cpp ${aethyra_SERVICE_SOURCES}
+  $<TARGET_OBJECTS:tmwa-obj-ast>
+  $<TARGET_OBJECTS:tmwa-obj-compat>
+  $<TARGET_OBJECTS:tmwa-obj-generic>
+  $<TARGET_OBJECTS:tmwa-obj-high>
+  $<TARGET_OBJECTS:tmwa-obj-mmo>
+  $<TARGET_OBJECTS:tmwa-obj-net>
+  $<TARGET_OBJECTS:tmwa-obj-wire>
+)
+target_link_libraries(aethyra-server tmwa-shared)
+
 add_executable(tmwa-admin ${admin_SOURCES}
   $<TARGET_OBJECTS:tmwa-obj-generic>
   $<TARGET_OBJECTS:tmwa-obj-high>
@@ -215,7 +230,7 @@ if(TMWA_BUILD_TESTS AND BUILD_TESTING)
 endif()
 
 # Install targets
-install(TARGETS tmwa-login tmwa-char tmwa-map tmwa-admin tmwa-shared
+install(TARGETS aethyra-server tmwa-login tmwa-char tmwa-map tmwa-admin tmwa-shared
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
