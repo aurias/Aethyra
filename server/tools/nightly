@@ -1,0 +1,135 @@
+#!/bin/bash -e
+#
+# The buildbot script is only intended to run on Debian amd64
+#
+
+WWW=${HOME}/www/
+
+BUILD=x86_64-linux-gnu
+
+ALL_HOSTS=(
+    x86_64-linux-gnu
+    i586-linux-gnu
+# x32 requires a recent kernel with appropriate flags.
+# On Debian, boot with 'syscall.x32=y' on the kernel command line
+# (see GRUB_CMDLINE_LINUX in /etc/default/grub)
+    #x86_64-linux-gnux32
+# Cross arches can be built by enabling multiarch, then installing
+# the g++-$ARCH package.
+# Executables can be run via qemu-user, but gdb tests must be disabled.
+# Bug 762073 notes impossible coinstallation of mips, mipsel, and powerpc.
+# dpkg-divert can only fix *one* of them.
+    #aarch64-linux-gnu
+    #arm-linux-gnueabi
+    #arm-linux-gnueabihf
+    #mips-linux-gnu
+    #mipsel-linux-gnu
+    #powerpc-linux-gnu
+)
+
+config---help() {
+    set +x
+    echo 'Usage: tools/nightly <list of arches>'
+    echo 'Arches are:'
+    echo x86_64-linux-gnu
+    echo i586-linux-gnu
+    echo x86_64-linux-gnux32
+    echo aarch64-linux-gnu
+    echo arm-linux-gnueabi
+    echo arm-linux-gnueabihf
+    echo mips-linux-gnu
+    echo mipsel-linux-gnu
+    echo powerpc-linux-gnu
+    exit
+}
+
+common-config() {
+    # HOST is set by the calling function
+    CXX=$HOST-g++
+    EXTRA_LIBS=(
+        /lib/$HOST/libc.so.6
+        /lib/$HOST/libm.so.6
+        /lib/$HOST/libgcc_s.so.1
+        /usr/lib/$HOST/libstdc++.so.6
+    )
+    GDB=/bin/true
+}
+
+
+config-x86_64-linux-gnu () {
+    common-config
+    GDB=gdb
+}
+
+config-i586-linux-gnu () {
+    # No one knows what number this is supposed to be:
+    # - the lib directory is called i386-linux-gnu
+    # - the 32-bit files are called i486-linux-gnu
+    # - the cross-32 configury says i586
+    CXX=$BUILD-'g++ -m32'
+    EXTRA_LIBS=(
+        /lib32/libc.so.6
+        /lib32/libm.so.6
+        /usr/lib32/libgcc_s.so.1
+        /usr/lib32/libstdc++.so.6
+    )
+    GDB=gdb
+}
+
+config-x86_64-linux-gnux32 () {
+    CXX=$BUILD-'g++ -mx32'
+    EXTRA_LIBS=(
+        /libx32/libc.so.6
+        /libx32/libm.so.6
+        /usr/libx32/libgcc_s.so.1
+        /usr/libx32/libstdc++.so.6
+    )
+    GDB=gdb
+}
+
+config-aarch64-linux-gnu () {
+    common-config
+}
+
+config-arm-linux-gnueabi () {
+    common-config
+}
+
+config-arm-linux-gnueabihf () {
+    common-config
+}
+
+config-mips-linux-gnu () {
+    common-config
+}
+
+config-mipsel-linux-gnu () {
+    common-config
+}
+
+config-powerpc-linux-gnu () {
+    common-config
+}
+
+first=true
+
+set -x
+for HOST in ${@:-${ALL_HOSTS[@]}}
+do
+    config-$HOST
+    mkdir -p build-$HOST
+    cd build-$HOST
+    ../configure --build=$BUILD --host=$HOST CXX="$CXX -Wno-deprecated-declarations -DQUIET" --prefix=/. --enable-rpath=relative GDB=$GDB
+    rm -rf bin lib stamp
+    make -j3 all
+    make -j3 test
+    if $first
+    then
+        make -j3 dist
+        first=false
+    fi
+    make -j3 bindist BUNDLED_LIBS="${EXTRA_LIBS[*]}"
+    gzip -n -9 dist/*.tar
+    mv dist/*.tar.gz $WWW
+    cd ..
+done

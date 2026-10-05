@@ -1,0 +1,16 @@
+TmwAthena - an MMORPG server
+
+This software is available under a combination of GPL3+ and AGPL3+.
+This combination is explicitly allowed by section 13 of the licenses.
+See gpl-3.0.txt or agpl-3.0.txt for specific terms.
+
+In order to make life easy for users who run this software publicly,
+please set VENDOR_SOURCE in version.mk if you make any modifications.
+
+History:
+
+Originally, tmwAthena was forked from eAthena in 2004.
+We don't have a list of copyright holders from this time.
+
+Until 2012, tmwAthena was GPL2+ and did not put per-file copyright notices.
+A list of specific copyright holders during this time is in the git history.

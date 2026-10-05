@@ -1,0 +1,458 @@
+v20.7.8
+  - make sure @hide/@invisible is re-applied on login
+v20.7.6
+  - fix script commands sometimes not returning values when they're expected to
+v20.4.18
+  - allow GM command logging to be silenced for specific commands
+v19.8.26~
+  - fix the errors that prevented compiling with musl-libc (now fully compatible with Alpine)
+  - increase the level cap to 135
+v19.8.26
+  - fix a regression introduced in v19.8.23 that prevented slaves from attacking
+v19.8.23
+  - allow summoned mobs to use skills
+  - allow to summon more than 1 mob with @summon
+v19.4.15.1
+  - a few refinements to automod
+v19.4.15
+  - add a way for GMs to prevent players from sitting on them
+  - add a built-in way to delay gm log messages (to avoid relying on an external timer)
+v19.1.10
+  - completely remove the fifo queue in login server
+  - limit the number of requests and idle sessions in login server
+v18.12.30
+  - Fixes a very old login/char authentication exploit
+  - Fixes the double login kick exploit
+  - Improves logging in login and char server
+v18.12.18
+  - add packets that tell ManaPlus to update player HP
+v18.12.13
+  - add support for sending player HP to manaplus
+v18.11.11
+  - add support for the online list packets
+v18.11.10
+  - don't display (GM) for non-60 gm levels in the txt online list
+v18.6.19
+  - automatically fix corrupt parties on boot
+v18.4.5
+  - make login server send auth data to char server witout waiting
+  - fix a race condition in login server
+  - make the server send keepalive (pong) packets to inactive sessions
+  - make the server kill sessions after 5 minutes of being inactive
+v18.3.23
+  - fix npc softlock ("freeze") on destroy
+v18.3.22
+  - don't iterate over hidden players with @hugo
+v18.3.11
+  - fix custom mob name handling
+  - fix out-of-memory reads
+  - don't send useless info for bots
+v18.3.5
+  - send the base level of players in visible/update1/update2
+  - fix a bug introduced by 1c5159c & d0ea549 (gm command hierarchy)
+  - ignore phony npc event calls (~), used to uniquely identify mobs
+  - send a name request reply (even without the client making a request) for custom mob names
+  - update the travis build matrix and fix gdb tests
+  - fix a bug that makes the player look alive when warping while dead
+  - don't send real gm levels to old clients, follow-up on v18.2.17
+v18.3.3
+  - added a missing null pointer check in npc_event
+  - added yet another missing vector include
+v18.2.17.1
+  - fix a few compilation errors
+v18.2.17
+  - fix players sometimes facing the wrong direction after magic attacks
+  - fix attoconf build
+  - allow to change GM level on-the-fly, from scripts
+  - send GM levels to the client (not just 128)
+  - hide (GM) in the online list of the gm level is hidden
+v18.1.29.1
+  - fix the previous release *facepalm*
+v18.1.29
+  - added missing nullpo checks in script commands
+v18.1.28
+  - fixed issues with magic weapon overrides
+v18.1.23
+  - fixed a crash that happened when trying to create item id 0
+v18.1.3
+  - remove mob timers (unused)
+  - properly clear timers of all npcs (not just script)
+  - add @setleader
+v18.1.1
+  - increase party limit to 120
+  - add a command to change party leader
+v17.11.12
+  - fix a bug that did not decrease the npc counter on npc despawn (REDUX)
+v16.11.28
+  - revert v16.11.9
+  - force sending the .gat extension in SMSG_SET_TILES_TYPE
+v16.11.27
+  - implement SMSG_SET_TILES_TYPE
+v16.11.9
+  - fix a bug that did not decrease the npc counter on npc despawn
+v16.5.12
+  - add target argument to the getmap() builtin
+  - make builtin overrideattack dumber; make scripts handle the logic
+  - make builtin aggravate dumber; make scripts handle the logic
+  - send 0 for param HP when player is dead, even if player has hp
+  - revert attachrid modifications (temporary measure, please avoid attachrid)
+  - add target argument to the addtimer builtin
+  - add target argument to the foreach builtin
+  - use pc_heal when changing hp using params
+  - add MUTE params (global mute, party mute, whisper mute, guild mute)
+  - don't allow to talk when muted
+  - allow to use custom commands (ie magic) in whispers and party
+v16.4.25
+  - check for null pointers in the new/modified builtins
+v16.4.24
+  - make tmwa use resave mapflags when you die in a pvpon map
+  - make the `get` builtin silently ignore errors
+  - allow to set params in mob/npcs (only some params so far)
+  - explicitly check that the parent still exists for puppets
+  - add INVISIBLE and HIDDEN params
+  - add missing null pointer check in builtin_close
+v16.4.21.1
+  - send client version from map server to char server when switching char
+v16.4.21
+  - use the client version sent to login server, ignore client version sent to char server
+  - allow remote execution for newer clients (protocol 6+)
+  - implement SMSG_SCRIPT_MESSAGE, add smsg builtin
+  - implement SMSG_PLAYER_CLIENT_COMMAND, add remotecmd builtin
+  - add builtin areatimer
+  - add builtin foreach
+  - add builtin aggravate
+  - add builtin overrideattack
+  - add builtin injure
+  - add builtin summon
+  - add builtin getdir
+  - add builtin addnpctimer
+  - add builtin get
+  - add builtin chr
+  - add builtin ord
+  - add builtin void
+  - add builtin getarg
+  - add builtin call
+  - remove magic-v2, keep sexpr parser
+  - implement puppet npcs
+  - add scope variables
+  - add npc variables
+  - expose some more params
+  - remove MESSAGE npc subtype
+v16.4.8
+  - fix pvpoff
+  - broadcast map pvp status on pvpon/pvpoff
+  - send nick to self in chat messages
+v16.4.3
+  - add player nicks back to messages
+  - prevent remote execution exploit (ManaPlus)
+v16.2.9
+  - make crashes a (tiny) bit more verbose
+  - fix @pvp broken nick problem
+  - add third gender
+  - allow to not allocate stats on char creation
+  - move gender from account to char
+v15.11.23
+  - Remove warp name from warp script headers, auto-generate warp npc name
+v15.10.01
+  - Make travis use the container-based builds
+  - Update the travis builds to use newer clang and gcc
+  - Fix attack path detection
+  - Add some missing pc_isdead checks to mobs (aka "mob freeze" bug)
+  - Fix "warp mob freeze" bug
+  - Fix how summoned mobs behave when their master leave (the summon+leave trolling)
+  - Stop looking for the next victim on the map for mob deaths (aka the "pumpkin failover" bug)
+  - New builtins: elif, else, if_then_else, explode, max, min, sqrt, cbrt, pow, average, array_search
+  - Fix crash when doing clif_damage on undefined_gat
+v15.8.17
+  - Fix Broken Nick Issue
+  - Change write to send
+  - Mob Movement
+v15.7.06
+  - another fix for "do not count hidden players with getmapusers builtin"
+v15.7.05
+  - fix for "do not count hidden players with getmapusers builtin"
+v15.6.30
+  - a few modifications to make tmwa compatible with gcc 5
+  - send pvp channel and rank to client
+  - don't segfault when inserting remote maps into DB
+  - do not count hidden players with getmapusers builtin
+  - do not reset the default (1) pvp channel on death
+  - fix a bug that allowed to attack with magic players that are not in the same pvp channel
+  - add builtin "title"
+  - add builtin "mapmask"
+  - add mapflag "mask" (and remove legacy "noicewall" mapflag)
+  - add builtin "npcaction"
+  - add builtin "music"
+v15.5.23
+  - really send mob hp properly
+  - add more debug with abort vs. runflag
+v15.5.19
+  - check client version in login server
+  - make npcs sit-able
+  - send mob attack range
+  - send mob hp properly
+  - send npc sex
+  - add builtin setnpcdirection
+  - make packet SMSG_BEING_VISIBLE follow manaplus spec
+  - make packet SMSG_BEING_MOVE follow manaplus spec
+v15.5.18
+  - reject old incompatible clients
+  - check client version before sending quest data
+  - send mob hp to client
+  - send mob walk data to client if client version >= 3
+  - remove "Save" and "Random" special map names for the warp builtin
+  - remove unused pc_randomwarp
+  - remove builtin getitemname in favor of builtin getitemlink
+  - remove builtin getequipname in favor of getitemlink combined with getequipid
+  - remove item labels
+  - remove OnInterIfInit event handler
+  - remove OnCharIfInit event handler
+  - remove long deprecated tmwa-monitor
+  - allow to specify npcs in timer-related builtins
+  - make the script engine more strict and die on errors
+  - completely deprecate invalid npc id -1 in favor of id 32767
+  - remove the motd in favor of one provided by server-data
+  - make the message about the source code location be sent to General chat tab instead of Debug
+  - remove leftovers from deprecation of atcommand gm
+  - reset the status both on death and on respawn
+v15.5.04
+  - remove check for pk_mode for mapflag NOPVP
+  - remove atcommand gm
+  - add atcommand npc
+  - remove builtin readparam
+  - remove builtin statusup2
+  - remove builtin changesex
+  - remove builtin gmcommand
+  - add builtin wgm
+  - add builtin gmlog
+  - do not force disconnection after sex change
+  - add new parameter to builtin emotion
+  - remove braces and jname from getitemlink
+  - add quest log
+  - add sanity check to freeloop
+  - add OnPCLoginEvent handler
+  - some typo fixes and rewording
+v15.4.20
+  - make spam warnings appear in General chat tab
+  - add builtin getnpcx
+  - add builtin getnpcy
+  - add builtin pvp
+  - add builtin getpvpflag
+  - add builtin strnpcinfo
+  - remove builtin cmdothernpc
+  - remove builtin killmonsterall
+  - remove builtin percentheal
+  - remove builtin itemheal
+  - modify builtin heal to include itemheal
+  - remove atcommand killer
+  - remove atcommand killable
+  - remove atcommand charkiller
+  - add atcommand pvp
+  - add atcommand charpvp
+  - add atcommand exprate
+  - remove warp debug (npc 722)
+  - add support for emote IDs over 100
+v15.2.28
+  - Added Freeloop
+v15.1.23:
+  - update changelog for this and last release
+  - segregate per-server global variables
+  - use namespaces for every server
+  - generate all config parsers
+  - support fine-tuned per-version sections in config files
+  - track spans for config parsing
+  - remove deprecated config settings
+  - fuck adl
+  - error out (after global ctors) if someone is dumb enough to run as root
+  - really fix shop prices
+  - add gcc 4.9 on travis
+  - use an uglier bug more reliable macro for MATCH
+  - fill the house with dancing elves, it is the xmas season
+  - workaround the clang bug preventing shared libraries
+  - fix clang 3.5 builds (previously only 3.4 worked)
+  - fix infinite loop in previous release
+  - flatten protocol generator and add pre/post/desc digraph and wiki
+  - new script builtins: npcareawarp, iscollision
+  - use manaplus url format
+  - fix nightlies
+v14.11.11:
+  - avoid this release at all costs
+  - fix an obscure bug breaking asan
+  - add new way of checking for mapless events
+  - fix off-by-one overflow with too many script arguments
+  - more script debugging in python instead of in the executable
+  - attempt to fix shops
+  - eliminate buggy microoptimization with sc_count
+  - fix crash with divorce
+  - parse npcs and items into an ast first
+  - simplify nightly cross-builds now that there's a defaults package
+  - semiformalize the concept of "ranked" directories of headers
+  - convert readme to markdown
+  - fix bugs caused by using more Option<T>
+  - bump clang version on travis
+  - various build system improvements to build more, smaller, files
+  - pretty-print pointers by symbol/segment
+  - move more stuff to Option<T>
+  - split parsing functions into their own files
+  - get rid of crazy 2-based arrays for script arguments
+  - finish removing offhanded weapons
+v14.10.5:
+  - fix the stupid refactoring bug with mob slave summons
+  - officially drop support for clang, all versions are too buggy
+  - implement Option<T> and Borrowed<T> with tests, but don't use them yet
+  - rename enum Option to Opt0 to move it out of the way
+  - add support for static libraries (clang is being retarded again)
+  - critical fix for the bug in parties (thanks Rawng)
+  - add support for cross-builds to the buildbot script
+  - fix a refactoring bug in magic
+  - fix an exposed bug in the magic 'dir_towards' function
+  - fix an exposed bug in char-server whispering
+v14.8.29:
+  - fix testsuite
+  - add missing changelog
+v14.8.28:
+  - stop meko from crashing the test server
+  - support updating race without relogin (manaplus is still bitchy)
+  - build infrastructure to debug debug scripts
+  - bust up all the unions
+  - burn the strings with fire
+  - use more namespaces
+  - safety-pin all enum -> integer conversions
+  - check for statement/function mismatches in scripts
+  - quieten the makefile when doing nothing
+  - use/check more of the configured build dirs
+  - support shared libraries in build system and rpath
+  - bump attoconf
+  - implement 'make bindist' and write a blessed nightly script
+  - revert breakage, go back to signed numbers
+  - fix compile failure with --disable-warnings (the default, but no CI)
+v14.7.1:
+  - avoid this and the previous release at all costs
+  - keep one less rotating backup to avoid going insane
+  - attempt to fix signedness breakage from the network change
+v14.6.30:
+  - packet names (thanks evets)
+  - silence secondary output from tests
+  - port the variant
+  - fix anti-purge thing by giving every account a date
+  - prevent null session crash during shutdown
+  - specialize inventory/storage indices to avoid out-of-bounds
+  - don't crash when giving invalid ID to @item
+  - play with obscure corners of the C++ standard that no one can interpret
+  - replace hand-coded network protocols with generate ones
+  - lots source layout and formatting cleanup
+  - faster dependency calculation
+  - strict ids (yay less bugs, boo account/block entanglement)
+  - beginning of integers
+  - support libc++ (experimental)
+  - drop gcc 4.6 support
+  - completely remove flex/bison dependency
+  - fix duplication in npctalk
+v14.4.20:
+  - fix potential file corruption with partial writes
+v14.4.19:
+  - emergency backport of security fix, since v14.7.1 is too buggy
+v14.4.18:
+  - fix some fatal bugs related to logout in the previous release
+  - fix out-of-bounds in trades exposed in the previous commit
+  - fix use-after-free when player is kicked with a delay
+v14.4.9:
+  - fix tarball timestamps
+  - added all missing copyright notices
+  - use AGPL for my new files; add @source command and makefile support
+  - fix a multiline span assertion missed by the testsuite
+  - @tee no longer duplicates the speaker's name
+  - fix @npcmove between blocks
+  - fix out-of-bounds crash when unarmed (exposed by shrinking character)
+  - bounds-checks for most arrays
+  - lots of deprecation warnings in the script parser (sorry)
+  - finally merge wushin's "local savepoint override" patch
+  - new magic frontend with sexpr; temporary converter
+  - if doing nothing, stop doing anything
+  - script variables of all types can now be used by magic
+  - flexible mapflags
+  - split out the character keys for better paging (network ABI change)
+  - lower priority for background processes
+  - add a more efficient string for temporaries
+  - make build prettier
+  - strictify sessions and fds
+  - recover nonexistent party member slots
+  - remove the middle makefile
+v14.1.27:
+  - new tracking IO for better errors
+  - Unified config parsing! This *requires* new config files in server-data
+  - reimplement shared string better
+  - fix IO-related abort during shutdown
+  - fix the numbering of certain map logs
+  - add mapexit script command, since @mapexit doesn't work without a player
+  - start enforcing code format automatically
+  - add debug printers
+v13.11.24:
+  - don't consume spell components when under @hide
+  - tmwa-admin no longer logs passwords in cleartext
+  - tmwa-admin help slightly fixed (still terrible)
+  - make tmwa-finger work for tmwa-map also
+  - allow setting class
+  - I/O rewrite
+  - allow checking whether arrows are equipped
+  - more printers
+v13.10.31:
+  - make debug printers more compatible with older systems
+  - fix account creation with ladmin
+  - fix building out of tree
+v13.10.29:
+  - show MOTD in a way that works
+  - ignore hidden GMs in more scripts
+  - make @hide persist without crashing
+  - rewrite @help and other dispatch
+  - fix totally broken status_option, which caused GM invisibility to fail
+  - add @charkiller
+  - make @hide to persist
+  - flush the GM log all the time
+  - add debug printers
+  - use config for internal server userid/passwd instead of accounts.txt
+    This requires updated config files in the data repo.
+    IF YOU DO NOT UPDATE THIS, YOUR SERVER WILL NOT WORK.
+  - fix reversed error condition in ladmin changesex
+  - actually kick the player when their sex is changed by a script
+  - implement 'make dist'
+  - fix crash due to logging after log is closed
+v13.10.2:
+  - remove some asserts that shouldn't fail, but do anyway
+v13.9.31:
+  - don't show different GM level types, it breaks guildbot
+v13.9.30:
+  - streamline release process
+  - fix drop order assignment
+  - show different GM level types in online list
+  - remove logging of failed whispers (successful ones were never logged)
+  - fix some warnings
+v13.9.29:
+  - fix monster elements
+v13.9.28:
+  - also make login server startup much faster
+  - fix turning right
+  - fix pathfinding a bit
+  - fix a small part of ladmin help
+v13.9.27:
+  - fix a bug with trades
+  - make char server startup much faster
+v13.9.21:
+  - With the new Makefile, the binary names have changed. Instead of
+    login-server, ladmin, etc., they are now tmwa-login, tmwa-admin, etc.
+    (properly namespaced). Please remove any instances of the following
+    files from your system: ladmin, login-server, char-server, map-server,
+    eathena-monitor, deps.make
+  - Fix statup2 not actually doing anything.
+  - Add 'return' to the list of script commands that don't work properly
+    inside an 'if' statement.
+v13.9.12:
+  - Also allow "true" and "false" as boolean values in config files.
+  - The format of lan_support.conf has changed slightly.
+    If you have made any adjustments, you MUST update it.
+  - Increase maximum size of a script array from 128 to 256.
+  - Fix scissors bug.
+v13.8.28:
+  - First release - finally cleaned up enough to feel good about.
+  - For a partial list of changes since branch 'unsupported', see
+    http://forums.themanaworld.org/viewtopic.php?f=2&t=17670

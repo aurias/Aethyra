@@ -1,0 +1,228 @@
+cmake_minimum_required(VERSION 3.10...3.31)
+
+# Aethyra: upstream derived the version from git tags. This tree is vendored
+# into the Aethyra repository without tmwa's tags, so pin it instead.
+# Upstream base: tmwa f9356d3 (2026-06-11), see PROVENANCE.md.
+set(VERSION 24.6.11.0)
+set(VERSION_HASH f9356d349c5fe14760fac7bb5297fad0aff456c0)
+
+project(AethyraServer VERSION ${VERSION} LANGUAGES CXX)
+
+# Build position independent executables, so they benefit from ASLR.
+include(CheckPIESupported)
+check_pie_supported()
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+option(TMWA_BUILD_TESTS "Build unit tests with GoogleTest and CTest" OFF)
+if(TMWA_BUILD_TESTS)
+  include(CTest)
+  add_subdirectory(deps/googletest EXCLUDE_FROM_ALL)
+  include(GoogleTest)
+endif()
+
+# Prefer to use G++ as the compiler
+set(CMAKE_CXX_COMPILER g++)
+# Set C++ standard to C++11
+# Note we want -std=c++11, not -std=gnu++11, as we want to avoid GNU extensions
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Some sources and includes are generated, such as the protocol headers.
+# We defer to generate.make for these rules.
+# Note that these are raw Makefile rules, not CMake rules, so a simple
+# add_custom_command() won't work.
+execute_process(COMMAND make -f ${CMAKE_SOURCE_DIR}/generate.mk
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
+# The generate target must be re-run when the scripts change
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+  "${PROJECT_SOURCE_DIR}/generate.mk"
+  "${PROJECT_SOURCE_DIR}/tools/config.py"
+  "${PROJECT_SOURCE_DIR}/tools/protocol.py"
+)
+
+# Search through the tree for sources
+# For each subfolder in src, add all .cpp, .hpp and .tcc files to a subfolder's SOURCES
+# variable.
+foreach(dir admin ast char compat generic high ints io login map mmo net proto-base range sexpr shared strings tests wire)
+    file(GLOB_RECURSE ${dir}_SOURCES CONFIGURE_DEPENDS
+        src/${dir}/*.cpp
+        src/${dir}/*.hpp
+        src/${dir}/*.tcc)
+    # Exclude any _test.cpp files from the build (they'll be built separately)
+    list(FILTER ${dir}_SOURCES EXCLUDE REGEX ".*_test.cpp")
+    message("Adding sources in ${dir}: ${${dir}_SOURCES}")
+
+    # Build OBJECT libraries to allow object reuse across targets
+    add_library(tmwa-obj-${dir} OBJECT EXCLUDE_FROM_ALL ${${dir}_SOURCES})
+    set_target_properties(tmwa-obj-${dir} PROPERTIES LINKER_LANGUAGE CXX)
+endforeach()
+
+set_target_properties(tmwa-obj-io
+                      tmwa-obj-strings
+                      PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+# All targets include the include/ directory
+include_directories(include)
+
+# We want -fvisibility=hidden for regular objects, but not shared libraries.
+# CMake provides a helpful preset for this.
+# FIXME this is currently broken
+#set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+# General purpose build flags.
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -fstack-protector-strong -fstack-clash-protection -fno-strict-aliasing -flto=auto")
+# Fortified libc calls (needs an optimising build to do anything).
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3")
+# Trap on out-of-bounds accesses to arrays with a statically known size.
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=bounds -fsanitize-trap=all")
+# Full RELRO, non-executable stack, and no mixed code/data pages.
+add_link_options(-Wl,-z,relro -Wl,-z,now -Wl,-z,noexecstack -Wl,-z,separate-code)
+# Enable link time optimization, and track function and data sections. We let
+# the linker remove unused code.
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto=auto -ffunction-sections -fdata-sections -Wl,--gc-sections")
+# Next, add warnings
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
+# Add debug information
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb")
+
+# Vendor Name: String (no newlines, no parentheses)
+# This is usually one word, and does not (usually) change over time.
+# (Examples: Gentoo, Debian, Fedora, Ubuntu)
+set(VENDOR_NAME Aethyra)
+# Vendor Point: Integer (max value 65535)
+# This is intended to be the "packaging revision number", assuming that's
+# an integer. At a minimum, please try to make it nonzero if you have
+# any non-upstream patches (unconditionally nonzero is also okay).
+# (If your revision 0 package has patches ... please be nicer to upstream)
+set(VENDOR_POINT 1)
+# URL where the source may be found (after searching for version number).
+# See AGPLv3 section 13
+set(VENDOR_SOURCE https://github.com/aurias/Aethyra)
+
+# Convenience
+set(VERSION_STRING "TMWA ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH} dev${PROJECT_VERSION_TWEAK} +${VENDOR_POINT} (${VENDOR_NAME})")
+set(VERSION_DOTS "${PROJECT_VERSION}.${VENDOR_POINT}")
+
+# A better default install location, based on platform
+if(UNIX AND CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+  set_property(CACHE CMAKE_INSTALL_PREFIX PROPERTY VALUE "$ENV{HOME}/.local")
+endif()
+
+include(GNUInstallDirs)
+set(PACKAGEDATADIR "${CMAKE_INSTALL_FULL_DATADIR}/tmwa")
+set(LOCALSTATEDIR "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}")
+set(SYSCONFDIR "${CMAKE_INSTALL_FULL_SYSCONFDIR}")
+list(APPEND CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_FULL_LIBDIR})
+
+# Generate the install.hpp and version.hpp files.
+configure_file(src/conf/install.hpp.in src/conf/install.hpp @ONLY)
+configure_file(src/conf/version.hpp.in src/conf/version.hpp @ONLY)
+set(conf_SOURCES src/conf/install.hpp src/conf/version.hpp)
+# And have the build search for files in the build directory.
+# Note that #includes with generated files should use a path relative to the
+# top level source or build directory.
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
+# Add a shared library: libtmwa-shared.so.0
+# When we add_executable later, we need to link against this library.
+add_library(tmwa-shared SHARED ${shared_SOURCES}
+  $<TARGET_OBJECTS:tmwa-obj-io>
+  $<TARGET_OBJECTS:tmwa-obj-strings>
+  ${conf_SOURCES}
+)
+# SO versioning
+set(ABI_VERSION 0)
+set_target_properties(tmwa-shared PROPERTIES
+  VERSION ${ABI_VERSION}.${VERSION_DOTS}
+  SOVERSION ${ABI_VERSION})
+
+# We have four binaries we want to build: tmwa-{login,char,map,admin}
+add_executable(tmwa-login ${login_SOURCES}
+  $<TARGET_OBJECTS:tmwa-obj-generic>
+  $<TARGET_OBJECTS:tmwa-obj-high>
+  $<TARGET_OBJECTS:tmwa-obj-mmo>
+  $<TARGET_OBJECTS:tmwa-obj-net>
+  $<TARGET_OBJECTS:tmwa-obj-wire>
+)
+target_link_libraries(tmwa-login tmwa-shared)
+
+add_executable(tmwa-char ${char_SOURCES}
+  $<TARGET_OBJECTS:tmwa-obj-generic>
+  $<TARGET_OBJECTS:tmwa-obj-high>
+  $<TARGET_OBJECTS:tmwa-obj-mmo>
+  $<TARGET_OBJECTS:tmwa-obj-net>
+  $<TARGET_OBJECTS:tmwa-obj-wire>
+)
+target_link_libraries(tmwa-char tmwa-shared)
+
+add_executable(tmwa-map ${map_SOURCES}
+  $<TARGET_OBJECTS:tmwa-obj-ast>
+  $<TARGET_OBJECTS:tmwa-obj-compat>
+  $<TARGET_OBJECTS:tmwa-obj-generic>
+  $<TARGET_OBJECTS:tmwa-obj-high>
+  $<TARGET_OBJECTS:tmwa-obj-mmo>
+  $<TARGET_OBJECTS:tmwa-obj-net>
+  $<TARGET_OBJECTS:tmwa-obj-wire>
+  )
+target_link_libraries(tmwa-map tmwa-shared)
+
+add_executable(tmwa-admin ${admin_SOURCES}
+  $<TARGET_OBJECTS:tmwa-obj-generic>
+  $<TARGET_OBJECTS:tmwa-obj-high>
+  $<TARGET_OBJECTS:tmwa-obj-mmo>
+  $<TARGET_OBJECTS:tmwa-obj-net>
+  $<TARGET_OBJECTS:tmwa-obj-wire>
+)
+target_link_libraries(tmwa-admin tmwa-shared)
+
+# TODO: Call make -f ${CMAKE_SOURCE_DIR}/generate.mk clean to clean up the
+# generated files. We want this to be run every time we call make clean.
+
+# Tests
+if(TMWA_BUILD_TESTS AND BUILD_TESTING)
+  file(GLOB_RECURSE TMWA_TEST_SOURCES CONFIGURE_DEPENDS
+      src/*/*_test.cpp)
+
+  # Core static library containing non-daemon sources (only when building tests)
+  add_library(tmwa-core STATIC
+    $<TARGET_OBJECTS:tmwa-obj-ast>
+    $<TARGET_OBJECTS:tmwa-obj-compat>
+    $<TARGET_OBJECTS:tmwa-obj-generic>
+    $<TARGET_OBJECTS:tmwa-obj-high>
+    $<TARGET_OBJECTS:tmwa-obj-ints>
+    $<TARGET_OBJECTS:tmwa-obj-mmo>
+    $<TARGET_OBJECTS:tmwa-obj-net>
+    $<TARGET_OBJECTS:tmwa-obj-proto-base>
+    $<TARGET_OBJECTS:tmwa-obj-range>
+    $<TARGET_OBJECTS:tmwa-obj-sexpr>
+    $<TARGET_OBJECTS:tmwa-obj-shared>
+    $<TARGET_OBJECTS:tmwa-obj-wire>
+  )
+  target_link_libraries(tmwa-core PUBLIC tmwa-shared)
+
+  foreach(test_src IN LISTS TMWA_TEST_SOURCES)
+    file(RELATIVE_PATH rel "${CMAKE_SOURCE_DIR}/src" "${test_src}")
+    string(REPLACE ".cpp" "" rel_no_ext "${rel}")
+    string(REPLACE "/" "_" test_target "${rel_no_ext}")
+    set(test_target "tmwa_${test_target}")
+
+    add_executable(${test_target} ${test_src})
+    target_link_libraries(${test_target} tmwa-core GTest::gtest_main)
+
+    gtest_discover_tests(${test_target})
+  endforeach()
+endif()
+
+# Install targets
+install(TARGETS tmwa-login tmwa-char tmwa-map tmwa-admin tmwa-shared
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
+
+# Install shared configuration and data
+install(FILES etc/tmwa/shared.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/tmwa)
+install(FILES share/tmwa/shared.data DESTINATION ${CMAKE_INSTALL_DATADIR}/tmwa)
+
+# Make sure there is a var directory
+install(DIRECTORY DESTINATION ${CMAKE_INSTALL_LOCALSTATEDIR}/tmwa)
