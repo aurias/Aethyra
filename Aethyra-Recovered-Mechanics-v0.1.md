@@ -1,8 +1,8 @@
 # Aethyra — Recovered Gameplay and World Mechanics
 
-Recovery v0.1 with subsequent user decisions · Updated 4 October 2026, 22:09 PDT
+Recovery v0.1 with subsequent user decisions · Updated 5 October 2026 (S-AE)
 
-This is a reconstruction and decision record for review and implementation planning. It consolidates the supplied root-conversation excerpts, later user corrections, current direction, and recoverable historical context. It is not a verbatim export of the complete CPL or a claim that every historical message was recovered. Explicit new user decisions are integrated under sources S-U through S-Z and S-AA through S-AD; proposed implementation details remain distinguished from those decisions. The repository and asset inspections below are separate evidence about existing software and artwork.
+This is a reconstruction and decision record for review and implementation planning. It consolidates the supplied root-conversation excerpts, later user corrections, current direction, and recoverable historical context. It is not a verbatim export of the complete CPL or a claim that every historical message was recovered. Explicit new user decisions are integrated under sources S-U through S-Z and S-AA through S-AE; proposed implementation details remain distinguished from those decisions. The repository and asset inspections below are separate evidence about existing software and artwork.
 
 ### Latest decisions integrated
 
@@ -102,6 +102,23 @@ Gale elevation traversal at 22:09 PDT:
 
 (S-AD)
 
+World, homeland and play-style answers on 5 October 2026, after the first playable demo:
+
+- Hue is the source of power in the world. It fills the natural world and fuels each biome with its own energy.
+- The defined hues are Gale (wind), Tide (water), Ember (fire), Terra (earth), Verdant (life), Aura (light), Decay (anti-life) and Void (anti-light). Biomes of Aura, Decay and Void are extremely rare.
+- Every biome has a core that the biome actively protects: stronger enemies, environmental challenges and skill checks increase toward it.
+- Altars of hue are found near the core. There the player may gain unique items, learn skills or face bosses. At the core itself the player may unlock new mastery levels of that hue.
+- Passive hue regeneration is boosted or reduced by the strength of hue concentration in the area.
+- Each player chooses a starting biome and homeland: an area, culture and starting zone tied to the starting hue and the kind of play they want. Some homelands teach different starting skills or lean more toward exploration, combat or crafting.
+- The player is an ordinary person learning to push and pull against a magical reality.
+- Gale culture is nature-attuned. It ranges from nomadic hunter-gatherers to windswept peak monks to farming communities that harvest with Wind Scythe. Gale movement abilities and aerial crafting materials let them harvest natural materials that other cultures cannot reach or reach only with difficulty.
+- The game is primarily a sandbox: discovering, exploring and building within the world is the story.
+- Several gameplay modes will be described later. For now the control template is click to target, WASD movement and numbered hotbars for skills.
+- Combining hues is a core element, including when one player learns several hues. A solo player can combine their own skills; a co-op pair can combine across players, which may take some preplanning. Co-op comes later.
+- Failure and death are undetermined, leaning toward cozy or RPG checkpoint style.
+
+(S-AE)
+
 ## Evidence and precedence
 
 - **Established:** present in a user-supplied CPL entry, explicit user clarification, or current instruction visible in this conversation.
@@ -148,11 +165,11 @@ Eight hues are explicitly listed in CP-S. Five have explicit starting-harvesting
 | Terra | Earth, stone, minerals | Extract stone and crystals; stone shaping in CP-S | Raw-material provision; density/hardness themes; opposing Gale can be combined for sandblasting |
 | Verdant | Plants, growth, living materials | Harvest wood, fibers, and hide | Wood framing; some resources possess regrowth/self-repair that can extend component life under overload |
 | Gale | Wind and airflow | Collect airflow crystals | Lightweight woods, fabrics, and refined natural materials; weight reduction, airflow, intensifying compatible effects |
-| Decay | Decay/corrosion — context-recovered | No dependable starting action recovered | Exact approved material effects and production mechanics remain unrecovered |
-| Aura | Light/radiance — context-recovered, consistent with the user's light-art requests | No dependable starting action recovered | Some resources have self-repair; Aura plus Gale may make camouflage cloth |
-| Void | Absence of natural hue; darkness/shadow in contextual descriptions | No dependable starting action recovered | Can emerge following hue depletion; dangerous altered biomes; nullification appears in recovered CP-H context |
+| Decay | Anti-life (S-AE); decay/corrosion in context-recovered descriptions | No dependable starting action recovered | Exact approved material effects and production mechanics remain unrecovered |
+| Aura | Light (S-AE); radiance in context-recovered descriptions | No dependable starting action recovered | Some resources have self-repair; Aura plus Gale may make camouflage cloth |
+| Void | Anti-light (S-AE); also recovered as the absence of natural hue, with darkness/shadow in contextual descriptions | No dependable starting action recovered | Can emerge following hue depletion; dangerous altered biomes; nullification appears in recovered CP-H context |
 
-The latest production-role assignments are explicit user decisions. Decay, Aura, and Void are reserved for rare, high-level crafting and produce the most powerful and chaotic effects. This does not independently resolve their eligibility at character creation or their non-crafting skill use. Gale's lightweight-material focus remains supported by the earlier direct corrections. (S-G, S-V)
+All eight are defined hues of the world. Biomes of Aura, Decay and Void are extremely rare (S-AE). The latest production-role assignments are explicit user decisions. Decay, Aura, and Void are reserved for rare, high-level crafting and produce the most powerful and chaotic effects. This does not independently resolve their eligibility at character creation or their non-crafting skill use. Gale's lightweight-material focus remains supported by the earlier direct corrections. (S-G, S-V)
 
 The conceptual affinity of a hue is not a universal bonus applied to every material of that hue. The user repeatedly rejected that style of extrapolation. Resource type, quality, affinity bonuses, and particular special attributes determine the component's outcome. (S-M, S-G)
 
@@ -183,6 +200,8 @@ The conceptual affinity of a hue is not a universal bonus applied to every mater
 - Preparation, equipment, hue knowledge, and mastery support deeper exploration. (S-C, S-S)
 - Biomes can react to the player and to resource/hue exploitation. Environmental defenses and camouflage are part of exploration and combat. (S-C, S-E)
 - A hue altar is a structure that taps into a regional hue core's energy. The environment becomes increasingly protective toward the core and attempts to obscure and defend the altar location. Reaching it is intended to be a perilous exploration journey. (S-U)
+- Every biome has a core that it actively protects, with stronger enemies, environmental challenges and skill checks closer to it. Altars are found near the core; the core itself is a further destination where new mastery levels of that hue can be unlocked. (S-AE)
+- Passive hue regeneration rises or falls with the local hue concentration. (S-AE)
 - Skills, crafted items, equipment, consumables, and deployables can help cope with the environment's challenges. This gives preparation, skill combinations, and field machinery direct roles in exploration. (S-U)
 
 **Context-recovered landscape descriptions:** Ember volcanic/molten terrain; Tide oceans, glaciers, and underwater caves; Terra mountains, caves, and rocky plains; Verdant forests and overgrown ruins; Gale windy plateaus, cliffs, and floating islands; Decay swamps, wastelands, and decaying forests; Aura luminous plains/mountains and celestial platforms; Void dark caverns and altered shadow terrain. These are recovered descriptions, not verified terrain-generation or mandatory-content rules. (R-W)
@@ -210,6 +229,8 @@ These entries do not establish every hue-pair relationship, symmetry, numerical 
 
 - Players start aligned to one hue and can gain mastery of additional hues. (S-S, R-H)
 - Visiting a hue altar unlocks the ability to manipulate that hue. (S-U)
+- At altars a player may gain unique items, learn skills or face bosses. Reaching the core itself can unlock new mastery levels of that hue. (S-AE)
+- Each player chooses a starting biome and homeland, which sets the starting hue, culture and starting zone. Homelands may teach different starting skills and weigh exploration, combat or crafting differently. (S-AE)
 - The player's hue/area of origin can make progression in another hue harder. The exact effect on rates, costs, challenges, or thresholds is not yet specified. (S-U)
 - An altar taps its regional hue core. Increasing environmental protection and obscuration create a difficult journey inward. (S-U)
 - Skills and combinations of crafted items, equipment, consumables, and deployables provide ways to overcome those challenges. (S-U)
@@ -217,6 +238,7 @@ These entries do not establish every hue-pair relationship, symmetry, numerical 
 - Altars may also unlock recipes, depending on how the crafting system is defined. This is explicitly conditional, not yet a fixed recipe-progression rule. (S-U)
 - Exact interaction procedure, repeat-use behavior, activation costs, eligibility beyond reaching the altar, and whether environmental defenses change after a visit are unresolved.
 - The player-facing interaction model for directing multiple learned hues remains unresolved. The current preference is skill/item manipulation and hybrid workflows rather than an emphasis on hotbar attacks. (S-U)
+- The current control template is click to target, WASD movement and numbered hotbars for skills. Further gameplay modes will be described later; the template does not replace the manipulation and workflow direction. (S-AE)
 
 ## 3. CP-R — Resources, material properties, and refining
 
@@ -459,6 +481,7 @@ Implementation implication: represent traversable elevations separately from vis
 - Difficulty increases toward biome cores. Environmental defenses can detect and attack unsuitable/inadequately camouflaged explorers. (S-C)
 - Camouflage reduces detection; the supplied prose treats it as important or necessary in dangerous regions. Exact detection, immunity, compatibility, duration, and escape rules are not recovered. (S-C, S-S)
 - Cross-hue learning, equipment crafting, and mastery expand combat options. (S-C)
+- Death and failure handling is undetermined, leaning toward cozy or RPG checkpoint style. (S-AE)
 - Attack targeting, hit detection, dodge/block controls, cooldowns, damage equations, death penalties, respawn, PvP, and loot ownership are unrecovered. TMW's existing behavior must not be assumed to be the intended Aethyra rule for these.
 
 ## 7. CP-P — Villages, factions, and economy
@@ -530,6 +553,9 @@ Implementation implication: represent traversable elevations separately from vis
 | Tide's entire role remains deferred | Latest user decision explicitly assigns precision-cut metal and cooling systems |
 | Village trade proves every NPC already has finite simulated stock | Trade/infrastructure are defined; individual conservation/autonomy was not recovered |
 | Every descriptive biome feature is mandatory procedural content | Recovered landscape descriptions need to be separated from simulation rules |
+| Altars sit at the core | Altars are near the core; the core itself is a further destination that unlocks mastery levels (S-AE) |
+| Void is only the absence of hue | Void is a defined hue, anti-light; Decay is anti-life; both, with Aura, have extremely rare biomes (S-AE) |
+| The game follows a central story | Primarily sandbox: discovery, exploration and building are the story (S-AE) |
 | AuraFuse simply means Aura | The term appears in the user's request; no separate dependable definition was recovered |
 
 ## 10. Context-only material deliberately kept out of established canon
@@ -690,6 +716,7 @@ Source labels reference the user-supplied root-chat excerpts in this conversatio
 | S-AB | User message at 21:59 PDT on 4 October 2026: casting requires several calculations and chance; high-level hue-intensive skills using stacks of low-level material should require incredible mastery, specific flow-improving items/skills, or success on a calculated chance roll |
 | S-AC | User message at 22:05 PDT on 4 October 2026: every starter teaches exploration, combat, and hue-channeling crafting; Gale featherfall/boosted jump, Gust knockback/evasion, and material manipulation for speed/stealth/evasion; common cadence with distinct hue-cultural experiences |
 | S-AD | User message at 22:09 PDT on 4 October 2026: featherfall descends map layers without stairs; another skill jumps back up; distinct Gale pathways make basic Gale mastery desirable for all players |
+| S-AE | User answers on 5 October 2026, after the first playable demo: hue as the world's power source; the eight defined hues with Decay anti-life and Void anti-light, and rare Aura/Decay/Void biomes; protected biome cores; altars near the core (items, skills, bosses) and mastery levels at the core; concentration-dependent regeneration; chosen starting biome and homeland; Gale culture; sandbox direction; click-target, WASD and hotbar control template; hue combination solo and in co-op; cozy or checkpoint-style failure under consideration |
 | R-H | Historical retrieval of CP-H around 2 October 2024 and later Task 3 updates: eight hues, mastery, energy handling, pair examples; original role attribution was inconsistent across summaries |
 | R-A | Historical retrieval of later CP-R discussions: seven named properties when weight is separate; confirms thermal conductivity and Roman tiers; direct visible corrections take precedence |
 | R-W | Historical retrieval of biome/crafting descriptions around 2–3 October 2024: landscape/affinity descriptions; treated as context where original approval is unavailable |
@@ -742,5 +769,11 @@ Source labels reference the user-supplied root-chat excerpts in this conversatio
 > “Each starter area will have a similar cadence but each should host a unique experience for that hue culture” (S-AC)
 
 > “Players could descend map layers without stairs by using featherfall. They can use another skill to jump back up.” (S-AD)
+
+> “Hue is the source of power in the world. It fills the natural world and fuels each biome with its unique energy.” (S-AE)
+
+> “The player is just a person in the world learning to push and pull against a magical reality” (S-AE)
+
+> “Primarily sandbox - discovering, exploring and building within the world is the story” (S-AE)
 
 This recovery preserves the rules available now and makes the limits of recovery explicit. Future edits should identify the rule being changed and the source or decision authorizing that change.
