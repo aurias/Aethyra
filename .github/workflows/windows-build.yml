@@ -1,0 +1,123 @@
+name: Windows build
+
+# Builds a playable Windows package: the client, its DLLs and data, and the
+# bundled world server (server/aethyra-server.exe with the world template)
+# used by Host World. Download it from the run's "Aethyra-windows" artifact.
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  server:
+    name: Server (MinGW cross-compile)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install MinGW-w64
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++-mingw-w64-x86-64-posix cmake python3
+
+      - name: Build aethyra-server.exe
+        run: |
+          cmake -S server -B build/server-win \
+            -DCMAKE_TOOLCHAIN_FILE=$PWD/server/cmake/mingw-w64-x86_64.cmake
+          cmake --build build/server-win --target aethyra-server -j"$(nproc)"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: server-exe
+          path: build/server-win/aethyra-server.exe
+
+  client:
+    name: Client (MSYS2 MinGW64)
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            git
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-SDL
+            mingw-w64-x86_64-SDL_image
+            mingw-w64-x86_64-SDL_mixer
+            mingw-w64-x86_64-SDL_net
+            mingw-w64-x86_64-SDL_ttf
+            mingw-w64-x86_64-SDL_gfx
+            mingw-w64-x86_64-physfs
+            mingw-w64-x86_64-libxml2
+            mingw-w64-x86_64-curl
+            mingw-w64-x86_64-libpng
+            mingw-w64-x86_64-zlib
+            mingw-w64-x86_64-gettext
+            mingw-w64-x86_64-ntldd
+
+      - name: Build Guichan 0.8
+        run: |
+          git clone --depth 1 -b 0.8 https://github.com/darkbitsorg/guichan.git /tmp/guichan
+          cmake -S /tmp/guichan -B /tmp/guichan/build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/mingw64
+          cmake --build /tmp/guichan/build
+          cmake --install /tmp/guichan/build
+
+      - name: Build aethyra.exe
+        run: |
+          cmake -S . -B build/client -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build/client
+
+      - name: Collect the client and its DLLs
+        run: |
+          mkdir -p package
+          cp build/client/src/aethyra.exe package/
+          # Every non-system DLL the executable (transitively) depends on.
+          ntldd -R package/aethyra.exe | tr '\\' '/' | grep -i '/mingw64/bin/' \
+            | sed -E 's/.* => (.*) \(0x.*/\1/' | sort -u \
+            | while read -r dll; do cp "$(cygpath -u "$dll")" package/; done
+          ls package
+          cp -r data package/data
+          rm -f package/data/CMakeLists.txt package/data/Makefile.am
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: client-package
+          path: package
+
+  package:
+    name: Package
+    needs: [server, client]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: client-package
+          path: Aethyra
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: server-exe
+          path: Aethyra/server
+
+      - name: Add the world template and notes
+        run: |
+          cp -r server/world Aethyra/server/world
+          rm -rf Aethyra/server/world/log/*
+          cp packaging/windows/demo-readme.txt Aethyra/README.txt
+          cp server/PROVENANCE.md server/COPYING server/agpl-3.0.txt server/gpl-3.0.txt Aethyra/server/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Aethyra-windows
+          path: Aethyra
