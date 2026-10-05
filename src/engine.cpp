@@ -75,8 +75,6 @@ Logger *logger = NULL;        /**< Log object */
 InputManager *inputManager = NULL;
 Sound sound;
 
-extern "C" char const *_nl_locale_name_default(void);
-
 Engine::Engine(const char *prog)
 {
     initInternationalization();
@@ -142,9 +140,9 @@ Engine::~Engine()
 void Engine::initInternationalization()
 {
 #if ENABLE_NLS
-#ifdef WIN32
-    putenv(("LANG=" + std::string(_nl_locale_name_default())).c_str());
-#endif
+    // libintl picks up the Windows user locale itself. (This used to call
+    // gettext's private _nl_locale_name_default(), which current libintl
+    // no longer exports.)
 #ifdef CODEBLOCKS
     // Code::Blocks doesn't like LOCALEDIR to be defined for some reason
     bindtextdomain("aethyra", "translations/");
