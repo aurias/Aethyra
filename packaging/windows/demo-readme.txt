@@ -21,12 +21,23 @@ CONTROLS
  X             Dash - rush up to 6 tiles in the direction you face
  C             Gust - blow nearby Gust Hoppers away (no damage)
  V             Wind Scythe - cut grass, herbs and flowers in front of you
+ Shift+X/C/V   use it anyway after a warning that vessels may burst
  Ctrl          attack the targeted monster       A   target nearest monster
  Z             pick up                           F3  inventory
  Click an NPC to talk. All keys can be changed under Setup > Keyboard.
 
  The green bar is your Gale energy. Each skill uses some; it refills by
- itself in a few seconds.
+ itself in a few seconds. Under it: how many Gale actions are running and
+ how much energy your selected vessels hold.
+
+ Hues (menu)    your Gale mastery, energy, how much current you can
+                channel, and your selected vessels
+ Skills (menu)  what each skill does and costs, your proficiency, and
+                what the next rank needs; spend skill points there
+                (you gain one per character level)
+ Inventory      select a Breeze Reed stack and press Supply: skills then
+                draw on it when you cannot channel enough current alone.
+                Overloading reeds can make the whole stack burst.
 
 WHAT TO DO
  Talk to Windkeeper Ama next to where you arrive. Harvest Meadow Grass
@@ -34,7 +45,10 @@ WHAT TO DO
  pond. Gust Hoppers bite: push them away with Gust and Dash clear. Bring
  Ama three Meadow Herbs and three Windflower Petals for a Gale Tonic.
 
-Worlds are saved in your user folder under .aethyra\worlds.
+Worlds are saved in your user folder under .aethyra\worlds. This version
+upgrades worlds from the first demo the first time it opens them (keeping
+a copy of the old saves as *.pre-hue1); the first demo cannot open them
+afterwards. Everyone must use this same version to join.
 
 The art is placeholder art. The server is derived from tmwAthena and is
 licensed under the GNU AGPL; see server\PROVENANCE.md.

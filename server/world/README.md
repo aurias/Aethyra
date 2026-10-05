@@ -49,3 +49,40 @@ user name (`new_account` is on).
 The services authenticate to each other with `userid`/`passwd` from the
 conf files (`change-me-char` here). That only guards their loopback link;
 worlds hosted from the client get a random password of their own.
+
+## Hue rules and tests
+
+`db/hue/` holds the hue definitions and the provisional tuning the server
+reads at start-up (`hue_db` in `tmwa-map.conf`): `balance.conf` (mastery
+capability rows, awards, overload risk), `skills.txt` (one line per skill
+rank), `vessels.txt`, `origins.txt`, `profiles.txt` (developer profiles)
+and `regions.txt`. Change numbers there, not in code; bump
+`balance_version` when you do. The loader refuses bad lines and names them.
+
+GM accounts (`save/gm_account.txt`, `ACCOUNT_ID 99`) get developer
+fixtures; normal players cannot use them:
+
+| Command | Effect |
+|---|---|
+| `@hueinfo` | Print hue records, skills and selected supply |
+| `@hueprofile novice\|advanced` | Replace the hue state with a profile |
+| `@hueforce -1\|0..3` | Force overload outcomes (bit 1 succeed, bit 2 destroy) or roll again |
+| `@hueseed N` | Seed this character's overload rolls |
+| `@hueset energy\|mastery HUE N`, `@hueset points N`, `@hueset prof SKILL N` | Set values |
+| `@huecharge [N]` | Refill (or set per-unit charge of) carried vessels |
+| `@huedebug` | Show demand, supply and rolls for each action in chat |
+
+Acceptance tests run real servers against copies of this template:
+
+```
+python3 server/tools/worldtest.py BUILD_DIR baseline pass1 migration
+```
+
+`BUILD_DIR` may hold `aethyra-server` or `aethyra-server.exe` (run under
+Wine). `migration` loads `server/tools/fixtures/demo-save-v0`, a save from
+before hue state.
+
+Saves written by this server are not readable by the first demo's server.
+On first start with older saves it copies `save/athena.txt` and
+`save/storage.txt` to `*.pre-hue1`; restore those to go back to the old
+build.
