@@ -30,6 +30,7 @@ struct LoginData
     std::string username;
     std::string password;
     std::string hostname;
+    std::string accountHost;  /**< Host the account server was reached at. */
     std::string updateHost;
     short port;
 
@@ -47,5 +48,13 @@ struct LoginData
 };
 
 extern LoginData loginData;
+
+/**
+ * Host to connect to for a server address advertised by the account or
+ * char server. 0.0.0.0 means "the host you logged in to", so a hosted
+ * world is reachable through whatever address players used to reach it
+ * (LAN address, VPN address or a port-forwarded public address).
+ */
+std::string advertisedHost(int address);
 
 #endif

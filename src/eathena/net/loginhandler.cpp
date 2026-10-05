@@ -161,10 +161,18 @@ void LoginHandler::handleMessage(MessageIn *msg)
     }
 }
 
+std::string advertisedHost(int address)
+{
+    if (address == 0)
+        return loginData.accountHost;
+    return ipToString(address);
+}
+
 void LoginHandler::login()
 {
     logger->log("Trying to connect to account server...");
     logger->log("Username is %s", loginData.username.c_str());
+    loginData.accountHost = loginData.hostname;
     network->connect(loginData.hostname, loginData.port);
     network->registerHandler(this);
 

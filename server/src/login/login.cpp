@@ -1259,7 +1259,10 @@ void parse_fromchar(Session *s)
                                 if (server_session[e])
                                 {
                                     Packet_Repeat<0x0069> info;
-                                    if (lan_ip_check(ip))
+                                    // Aethyra: test the player's address, not
+                                    // the char server's (`ip`), which is always
+                                    // loopback when the services share a host.
+                                    if (lan_ip_check(s2->client_ip))
                                         info.ip = login_lan_conf.lan_char_ip;
                                     else
                                         info.ip = server[e].ip;

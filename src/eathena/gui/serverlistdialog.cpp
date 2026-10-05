@@ -45,7 +45,7 @@ void ServerListDialog::action(const gcn::ActionEvent &event)
     {
         const SERVER_INFO *si = server_info[getSelected()];
 
-        loginData.hostname = ipToString(si->address);
+        loginData.hostname = advertisedHost(si->address);
         loginData.port = si->port;
         loginData.updateHost = si->updateHost;
 

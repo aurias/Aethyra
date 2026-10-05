@@ -307,7 +307,7 @@ void StateManager::setState(const State state)
 
             if (loginData.servers == 1)
             {
-                loginData.hostname = ipToString(server_info[0]->address);
+                loginData.hostname = advertisedHost(server_info[0]->address);
                 loginData.port = server_info[0]->port;
                 loginData.updateHost = server_info[0]->updateHost;
                 setState(UPDATE_STATE);
