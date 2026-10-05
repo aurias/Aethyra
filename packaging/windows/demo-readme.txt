@@ -13,8 +13,25 @@ JOINING A FRIEND
  PC, or everyone joins the same VPN (Tailscale or ZeroTier) and uses the
  host's VPN address.
 
-Worlds are saved in %USERPROFILE%\.aethyra\worlds (or under your user
-folder's .aethyra directory).
+CONTROLS
+ Arrow keys    walk (or click where to go)
+ X             Dash - rush up to 6 tiles in the direction you face
+ C             Gust - blow nearby Gust Hoppers away (no damage)
+ V             Wind Scythe - cut grass, herbs and flowers in front of you
+ Ctrl          attack the targeted monster       A   target nearest monster
+ Z             pick up                           F3  inventory
+ Click an NPC to talk. All keys can be changed under Setup > Keyboard.
+
+ The green bar is your Gale energy. Each skill uses some; it refills by
+ itself in a few seconds.
+
+WHAT TO DO
+ Talk to Windkeeper Ama next to where you arrive. Harvest Meadow Grass
+ anywhere, Wild Herbs on the terrace up the stairs and Windflowers by the
+ pond. Gust Hoppers bite: push them away with Gust and Dash clear. Bring
+ Ama three Meadow Herbs and three Windflower Petals for a Gale Tonic.
+
+Worlds are saved in your user folder under .aethyra\worlds.
 
 The art is placeholder art. The server is derived from tmwAthena and is
 licensed under the GNU AGPL; see server\PROVENANCE.md.
