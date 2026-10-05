@@ -103,6 +103,7 @@ Network::Network():
     mOutBuffer(new char[BUFFER_SIZE]),
     mInSize(0), mOutSize(0),
     mToSkip(0),
+    mConnectionId(0),
     mState(IDLE),
     mWorkerThread(0)
 {
@@ -146,6 +147,7 @@ bool Network::connect(const std::string &address, short port)
     mOutSize = 0;
     mInSize = 0;
     mToSkip = 0;
+    mConnectionId++;
 
     mState = CONNECTING;
     mWorkerThread = SDL_CreateThread(networkThread, this);
@@ -209,10 +211,18 @@ void Network::dispatchMessages()
             return;
         }
 
+        const unsigned int connectionId = mConnectionId;
+
         if (iter != mMessageHandlers.end())
             iter->second->handleMessage(&msg);
         else
             logger->log("Unhandled packet: %x", msg.getId());
+
+        // A handler may have reconnected (e.g. login -> char server). The
+        // buffer now belongs to the new connection, so the old message's
+        // bytes must not be skipped from it.
+        if (connectionId != mConnectionId)
+            return;
 
         skip(msg.getLength());
     }

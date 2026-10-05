@@ -114,6 +114,12 @@ class Network
 
         unsigned int mToSkip;
 
+        /**
+         * Incremented by every connect(), so dispatchMessages() can tell when
+         * a handler replaced the connection the message came from.
+         */
+        unsigned int mConnectionId;
+
         NetState mState;
         std::string mError;
 

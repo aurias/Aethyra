@@ -170,7 +170,7 @@ void LoginHandler::login()
 
     // Send login infos
     MessageOut outMsg(0x0064);
-    outMsg.writeInt32(0); // client version
+    outMsg.writeInt32(CLIENT_PROTOCOL_VERSION);
     outMsg.writeString(loginData.username, 24);
     outMsg.writeString(loginData.password, 24);
 

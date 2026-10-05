@@ -117,7 +117,7 @@ void Minimap::setMap(Map *map)
     }
 
     // Set the title for the Minimap
-    if (map)
+    if (map && map->hasProperty("minimap"))
     {
         ResourceManager *resman = ResourceManager::getInstance();
         mMapImage = resman->getImage(map->getProperty("minimap"));

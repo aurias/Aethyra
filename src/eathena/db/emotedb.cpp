@@ -142,6 +142,11 @@ const EmoteInfo *EmoteDB::get(const int id)
 const AnimatedSprite* EmoteDB::getAnimation(const int id)
 {
     const EmoteInfo *info = get(id);
+
+    // Missing emotes (ids are allowed to have gaps) have no animation.
+    if (!info || info->sprites.empty())
+        return NULL;
+
     return info->sprites.front()->sprite;
 }
 

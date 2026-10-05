@@ -113,6 +113,7 @@ void MapLoginHandler::login()
     // We get 4 useless bytes before the real answer comes in
     network->skip(4);
 
-    // Force the server to resend the being data.
-    MessageOut mapMsg(CMSG_MAP_LOADED);
+    // CMSG_MAP_LOADED is sent by Viewport::changeMap() once the map is
+    // loaded. Sending it here, before the server has authenticated this
+    // connection, makes the server drop it.
 }
