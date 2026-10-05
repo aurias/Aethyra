@@ -1,8 +1,10 @@
 # Aethyra — Recovered Gameplay and World Mechanics
 
-Recovery v0.1 with subsequent user decisions · Updated 5 October 2026 (S-AE)
+Recovery v0.1 with subsequent user decisions · Updated 5 October 2026 (S-AI)
 
-This is a reconstruction and decision record for review and implementation planning. It consolidates the supplied root-conversation excerpts, later user corrections, current direction, and recoverable historical context. It is not a verbatim export of the complete CPL or a claim that every historical message was recovered. Explicit new user decisions are integrated under sources S-U through S-Z and S-AA through S-AE; proposed implementation details remain distinguished from those decisions. The repository and asset inspections below are separate evidence about existing software and artwork.
+This is a reconstruction and decision record for review and implementation planning. It consolidates the supplied root-conversation excerpts, later user corrections, current direction, and recoverable historical context. It is not a verbatim export of the complete CPL or a claim that every historical message was recovered. Explicit new user decisions and implementation reports are integrated under sources S-U through S-Z and S-AA through S-AI; proposed implementation details remain distinguished from those decisions. The repository and asset inspections below are separate evidence about existing software and artwork.
+
+**Current implementation status — 5 October:** the user supplied a merged Aethyra/TMWA Windows demo and confirmed that the binary runs and all included skills work as expected. Earlier statements below that no build exists describe the prior inspection/planning stage. The new [gameplay and implementation framework](Aethyra-Gameplay-and-Implementation-Framework-v0.2.md) starts from this working baseline, with a [coding-agent handoff](Aethyra-Coding-Agent-Handoff-v0.2.md). Its proposed policies and future passes are not automatically new canon. (S-AF, S-AG, S-AH)
 
 ### Latest decisions integrated
 
@@ -102,6 +104,20 @@ Gale elevation traversal at 22:09 PDT:
 
 (S-AD)
 
+Gust ledge interaction and implementation request at 22:17 PDT on 4 October:
+
+- The user approved the preceding suggestion that Gust can push enemies off ledges onto a lower level.
+- This establishes displacement between elevations. Fall damage, instant kills, player-versus-player knockback, and universal player/enemy fall rules remain undecided.
+- The user requested the steps needed to implement a starter-zone test. The companion build specification scopes a proposed first playable loop and records reversible test defaults separately from established mechanics.
+
+(S-AE)
+
+Working demo and development direction on 5 October:
+
+- The user supplied `Aethyra-windows.zip`, describing a functional starter zone with placeholder graphics built by merging Aethyra client and tmwAthena repositories. (S-AF)
+- At 08:47 PDT, the user confirmed the binary runs and all included skills behave as expected, then asked about character statistics, skills and GUI as the next work. This confirms the existing demo, not unimplemented vessel/elevation/assembly systems. (S-AG)
+- At 09:20 PDT, the user requested a detailed gameplay/UI/mastery explanation and a coding-agent plan in sweeping passes, reusable for future biomes and midgame/endgame content. The companion framework answers that request. Implementation suggestions in it remain labeled as such. (S-AH)
+
 World, homeland and play-style answers on 5 October 2026, after the first playable demo:
 
 - Hue is the source of power in the world. It fills the natural world and fuels each biome with its own energy.
@@ -117,7 +133,7 @@ World, homeland and play-style answers on 5 October 2026, after the first playab
 - Combining hues is a core element, including when one player learns several hues. A solo player can combine their own skills; a co-op pair can combine across players, which may take some preplanning. Co-op comes later.
 - Failure and death are undetermined, leaning toward cozy or RPG checkpoint style.
 
-(S-AE)
+(S-AI)
 
 ## Evidence and precedence
 
@@ -165,11 +181,11 @@ Eight hues are explicitly listed in CP-S. Five have explicit starting-harvesting
 | Terra | Earth, stone, minerals | Extract stone and crystals; stone shaping in CP-S | Raw-material provision; density/hardness themes; opposing Gale can be combined for sandblasting |
 | Verdant | Plants, growth, living materials | Harvest wood, fibers, and hide | Wood framing; some resources possess regrowth/self-repair that can extend component life under overload |
 | Gale | Wind and airflow | Collect airflow crystals | Lightweight woods, fabrics, and refined natural materials; weight reduction, airflow, intensifying compatible effects |
-| Decay | Anti-life (S-AE); decay/corrosion in context-recovered descriptions | No dependable starting action recovered | Exact approved material effects and production mechanics remain unrecovered |
-| Aura | Light (S-AE); radiance in context-recovered descriptions | No dependable starting action recovered | Some resources have self-repair; Aura plus Gale may make camouflage cloth |
-| Void | Anti-light (S-AE); also recovered as the absence of natural hue, with darkness/shadow in contextual descriptions | No dependable starting action recovered | Can emerge following hue depletion; dangerous altered biomes; nullification appears in recovered CP-H context |
+| Decay | Anti-life (S-AI); decay/corrosion in context-recovered descriptions | No dependable starting action recovered | Exact approved material effects and production mechanics remain unrecovered |
+| Aura | Light (S-AI); radiance in context-recovered descriptions | No dependable starting action recovered | Some resources have self-repair; Aura plus Gale may make camouflage cloth |
+| Void | Anti-light (S-AI); also recovered as the absence of natural hue, with darkness/shadow in contextual descriptions | No dependable starting action recovered | Can emerge following hue depletion; dangerous altered biomes; nullification appears in recovered CP-H context |
 
-All eight are defined hues of the world. Biomes of Aura, Decay and Void are extremely rare (S-AE). The latest production-role assignments are explicit user decisions. Decay, Aura, and Void are reserved for rare, high-level crafting and produce the most powerful and chaotic effects. This does not independently resolve their eligibility at character creation or their non-crafting skill use. Gale's lightweight-material focus remains supported by the earlier direct corrections. (S-G, S-V)
+All eight are defined hues of the world. Biomes of Aura, Decay and Void are extremely rare (S-AI). The latest production-role assignments are explicit user decisions. Decay, Aura, and Void are reserved for rare, high-level crafting and produce the most powerful and chaotic effects. This does not independently resolve their eligibility at character creation or their non-crafting skill use. Gale's lightweight-material focus remains supported by the earlier direct corrections. (S-G, S-V)
 
 The conceptual affinity of a hue is not a universal bonus applied to every material of that hue. The user repeatedly rejected that style of extrapolation. Resource type, quality, affinity bonuses, and particular special attributes determine the component's outcome. (S-M, S-G)
 
@@ -200,8 +216,8 @@ The conceptual affinity of a hue is not a universal bonus applied to every mater
 - Preparation, equipment, hue knowledge, and mastery support deeper exploration. (S-C, S-S)
 - Biomes can react to the player and to resource/hue exploitation. Environmental defenses and camouflage are part of exploration and combat. (S-C, S-E)
 - A hue altar is a structure that taps into a regional hue core's energy. The environment becomes increasingly protective toward the core and attempts to obscure and defend the altar location. Reaching it is intended to be a perilous exploration journey. (S-U)
-- Every biome has a core that it actively protects, with stronger enemies, environmental challenges and skill checks closer to it. Altars are found near the core; the core itself is a further destination where new mastery levels of that hue can be unlocked. (S-AE)
-- Passive hue regeneration rises or falls with the local hue concentration. (S-AE)
+- Every biome has a core that it actively protects, with stronger enemies, environmental challenges and skill checks closer to it. Altars are found near the core; the core itself is a further destination where new mastery levels of that hue can be unlocked. (S-AI)
+- Passive hue regeneration rises or falls with the local hue concentration. (S-AI)
 - Skills, crafted items, equipment, consumables, and deployables can help cope with the environment's challenges. This gives preparation, skill combinations, and field machinery direct roles in exploration. (S-U)
 
 **Context-recovered landscape descriptions:** Ember volcanic/molten terrain; Tide oceans, glaciers, and underwater caves; Terra mountains, caves, and rocky plains; Verdant forests and overgrown ruins; Gale windy plateaus, cliffs, and floating islands; Decay swamps, wastelands, and decaying forests; Aura luminous plains/mountains and celestial platforms; Void dark caverns and altered shadow terrain. These are recovered descriptions, not verified terrain-generation or mandatory-content rules. (R-W)
@@ -229,8 +245,8 @@ These entries do not establish every hue-pair relationship, symmetry, numerical 
 
 - Players start aligned to one hue and can gain mastery of additional hues. (S-S, R-H)
 - Visiting a hue altar unlocks the ability to manipulate that hue. (S-U)
-- At altars a player may gain unique items, learn skills or face bosses. Reaching the core itself can unlock new mastery levels of that hue. (S-AE)
-- Each player chooses a starting biome and homeland, which sets the starting hue, culture and starting zone. Homelands may teach different starting skills and weigh exploration, combat or crafting differently. (S-AE)
+- At altars a player may gain unique items, learn skills or face bosses. Reaching the core itself can unlock new mastery levels of that hue. (S-AI)
+- Each player chooses a starting biome and homeland, which sets the starting hue, culture and starting zone. Homelands may teach different starting skills and weigh exploration, combat or crafting differently. (S-AI)
 - The player's hue/area of origin can make progression in another hue harder. The exact effect on rates, costs, challenges, or thresholds is not yet specified. (S-U)
 - An altar taps its regional hue core. Increasing environmental protection and obscuration create a difficult journey inward. (S-U)
 - Skills and combinations of crafted items, equipment, consumables, and deployables provide ways to overcome those challenges. (S-U)
@@ -238,7 +254,7 @@ These entries do not establish every hue-pair relationship, symmetry, numerical 
 - Altars may also unlock recipes, depending on how the crafting system is defined. This is explicitly conditional, not yet a fixed recipe-progression rule. (S-U)
 - Exact interaction procedure, repeat-use behavior, activation costs, eligibility beyond reaching the altar, and whether environmental defenses change after a visit are unresolved.
 - The player-facing interaction model for directing multiple learned hues remains unresolved. The current preference is skill/item manipulation and hybrid workflows rather than an emphasis on hotbar attacks. (S-U)
-- The current control template is click to target, WASD movement and numbered hotbars for skills. Further gameplay modes will be described later; the template does not replace the manipulation and workflow direction. (S-AE)
+- The current control template is click to target, WASD movement and numbered hotbars for skills. Further gameplay modes will be described later; the template does not replace the manipulation and workflow direction. (S-AI)
 
 ## 3. CP-R — Resources, material properties, and refining
 
@@ -459,10 +475,12 @@ All starting areas teach the following foundations through culturally distinct c
 | Foundation | Shared lesson | Proposed Gale expression from the user |
 |---|---|---|
 | Exploration | Use basic skills to cope with the environment | Featherfall descends map layers without stairs; a separate skill jumps back up (S-AD) |
-| Combat | Deal with enemies using the hue's capabilities | Gust knockback encourages evasion and positioning; the earlier defined Gust remains non-damaging |
+| Combat | Deal with enemies using the hue's capabilities | Gust knockback encourages evasion and positioning and may push enemies off ledges to lower levels; Gust itself remains non-damaging (S-AE) |
 | Crafting | Channel hue into items, consumables, and equipment | Material manipulation that supports speed, stealth, and evasion |
 
 Featherfall and upward jumping now have separate defined roles. Their acquisition order and whether both are immediately available at the start remain unspecified. Gale players gain distinct traversal routes; basic mastery is intended to appeal to players of other origins. Exact elevation reach, energy costs, landing constraints, falling without protection, and controls remain open. This defines elevation traversal without committing to unrestricted flight. (S-AD)
+
+Gust can push an enemy across a ledge to a lower level. Any harm from the resulting fall is separate from Gust's direct effect and remains undecided; instant kills and PvP displacement are not established. (S-AE)
 
 The exact crafted items, effects, quantities, mastery requirements, training order, and NPC teaching mechanisms remain unspecified. Speed/stealth/evasion are crafting directions, not universal bonuses applied to every Gale material. (S-AC interpreted consistently with S-M and S-G)
 
@@ -481,7 +499,7 @@ Implementation implication: represent traversable elevations separately from vis
 - Difficulty increases toward biome cores. Environmental defenses can detect and attack unsuitable/inadequately camouflaged explorers. (S-C)
 - Camouflage reduces detection; the supplied prose treats it as important or necessary in dangerous regions. Exact detection, immunity, compatibility, duration, and escape rules are not recovered. (S-C, S-S)
 - Cross-hue learning, equipment crafting, and mastery expand combat options. (S-C)
-- Death and failure handling is undetermined, leaning toward cozy or RPG checkpoint style. (S-AE)
+- Death and failure handling is undetermined, leaning toward cozy or RPG checkpoint style. (S-AI)
 - Attack targeting, hit detection, dodge/block controls, cooldowns, damage equations, death penalties, respawn, PvP, and loot ownership are unrecovered. TMW's existing behavior must not be assumed to be the intended Aethyra rule for these.
 
 ## 7. CP-P — Villages, factions, and economy
@@ -553,9 +571,9 @@ Implementation implication: represent traversable elevations separately from vis
 | Tide's entire role remains deferred | Latest user decision explicitly assigns precision-cut metal and cooling systems |
 | Village trade proves every NPC already has finite simulated stock | Trade/infrastructure are defined; individual conservation/autonomy was not recovered |
 | Every descriptive biome feature is mandatory procedural content | Recovered landscape descriptions need to be separated from simulation rules |
-| Altars sit at the core | Altars are near the core; the core itself is a further destination that unlocks mastery levels (S-AE) |
-| Void is only the absence of hue | Void is a defined hue, anti-light; Decay is anti-life; both, with Aura, have extremely rare biomes (S-AE) |
-| The game follows a central story | Primarily sandbox: discovery, exploration and building are the story (S-AE) |
+| Altars sit at the core | Altars are near the core; the core itself is a further destination that unlocks mastery levels (S-AI) |
+| Void is only the absence of hue | Void is a defined hue, anti-light; Decay is anti-life; both, with Aura, have extremely rare biomes (S-AI) |
+| The game follows a central story | Primarily sandbox: discovery, exploration and building are the story (S-AI) |
 | AuraFuse simply means Aura | The term appears in the user's request; no separate dependable definition was recovered |
 
 ## 10. Context-only material deliberately kept out of established canon
@@ -640,13 +658,27 @@ The inspected source headers state GPL version 2 or later. Asset attribution and
 
 Agentic coding tasks should each name the intended behavior, touched state/protocol, and an observable completion check. The first task is a reproducible baseline, followed by a small shared simulation, rather than an unrestricted request to transform the entire client into the final game.
 
+### 11.2 Gale starter-zone implementation handoff
+
+The [Gale starter-zone build specification](Aethyra-Gale-Starter-Zone-Build-Spec-v0.1.md) turns the established learning loop and approved ledge interaction into a proposed implementation sequence. It includes pinned runtime candidates, content needs, movement rules, client/server state, vessel accounting, a real crafting demonstration, persistence, and completion checks. Proposed counts, map layout, temporary fall behavior, recipe, controls, and numeric defaults are not additional canon.
+
+Additional source inspection found x/y tile coordinates and flat walkability in the later Tametomo client (`src/core/map/map.h`, `src/core/map/sprite/being.h`). TMWA's inspected entity model also uses map/x/y coordinates (`src/map/map.hpp`). Gameplay elevation therefore needs an explicit extension or a consistent map-derived model; graphical tile layers alone do not implement it.
+
+The inspected server candidate is [TMWA at `f9356d349c5fe14760fac7bb5297fad0aff456c0`](https://github.com/themanaworld/tmwa/tree/f9356d349c5fe14760fac7bb5297fad0aff456c0), with separate [server data at `51140b12f6479253504f905589ff9ecb5da405b2`](https://github.com/themanaworld/tmwa-server-data/tree/51140b12f6479253504f905589ff9ecb5da405b2). Connection compatibility with the historical client has not been tested. The first coding gate is a reproducible local session with two clients before implementing new Gale actions. No source checkout, compilation, server launch, or gameplay implementation has been performed for this handoff.
+
+### 11.3 Working demo inspection and subsequent framework — 5 October 2026
+
+The supplied Windows archive contains the client, a bundled server, a 40×30 Gale map, placeholder sprites, Dash/Gust/Wind Scythe controls, items, spawns, NPC scripts and a hosted-world template. Inspection decoded the client collision layer and server walk file: all 1,200 cells agree (244 blocked, 956 walkable). The NPC script checks for three Meadow Herbs and three Windflower Petals, consumes them and grants a Gale Tonic. Breeze Reed is listed as a natural vessel that is not yet usable. Executable symbols reference client/server hue handlers. The archive does not include the modified C++ source.
+
+The user subsequently verified that the binary runs and all included skills do as expected. The assistant did not execute the binaries, audit the merged C++ source, or independently verify multiplayer synchronization, host persistence or future mechanics. Host World and saved-world behavior are documented in the package; those remain explicit runtime checks for the coding agent.
+
+Use the actual merged repository that produced this build for the next implementation. The historical source candidates in sections 11.1–11.2 must not override newer working integration. The new [framework](Aethyra-Gameplay-and-Implementation-Framework-v0.2.md) defines character/hue progression, vessel-backed actions, UI, traversal, assemblies, processes, biome/altar content, camps, machinery, NPC economy and world changes. It preserves separate character levels, per-hue mastery and skill proficiency from the recovered CP-S. Its first active coding scope is baseline reproduction followed by character/skill/vessel integration; later passes are a roadmap, not a claim of completion.
+
 ## 12. Remaining questions — ask in stages
 
 The previous questions are partly resolved by S-U through S-Z: altar purpose/unlocks are defined; prepared and improvised combinations are supported; mastery-linked activations remain the direction but balance is deliberately provisional; natural vessels provide early storage; Aura vessels accept any hue and support advanced machinery; networks use modules, inputs, and pipes, potentially with skilled NPC operators. Gale grassland, the historical repository location, and Len's art foundation are now selected. Low-capacity vessels can combine and disintegrate under overload; voltage/current/power-like calculations are intended. Camps, cultural NPC demonstrations, and process-dependent crafting consequences remain established. Do not require final slot balancing before defining a first playable slice. Natural-vessel recharge after harvesting remains unanswered and is deferred alongside other numerical/access rules.
 
-Next questions:
-
-1. **Knockback at elevation edges:** Can Gust push enemies off ledges to a lower map level? If allowed, fall consequences and enemy/player consistency can be specified next; falling damage or instant kills are not assumed.
+The ledge question is resolved by S-AE: Gust can push enemies off ledges onto a lower level. Fall consequences and enemy/player consistency remain open. These do not block the baseline build: the companion specification proposes a nonlethal drop with brief landing recovery for the first test, explicitly as a reversible fixture rather than a final game rule.
 
 S-AD resolves the traversal roles: featherfall descends map layers without stairs, and a separate skill jumps back up. Use this to build a first elevation test instead of repeating the broad free-movement-versus-contextual-action question. Exact controls remain an implementation choice awaiting later definition.
 
@@ -656,11 +688,11 @@ The previous cast-outcome question is resolved at the design-principle level by 
 
 Later questions, not all at once: skill duration/upfront versus sustained costs; activation allowance scope/occupancy; vessel charging, natural-material hue compatibility, and Aura mixing rules; machine/assembly relationships; skilled NPC employment; camp claim timer/renewal and offline operation; core-assisted energy mechanism; formal learning gates from NPC observation; exact material-stat equations; passive versus supplied affinity effects; port allocation; recipe bootstrap; identification scope; failure/repair costs; combat controls and death; PvP; NPC stock conservation; offline economic production; land acquisition/governance; depletion/renewal timing; event scheduling; world geometry; persistence/migration requirements.
 
-### Proposed next planning step — first playable loop
+### Proposed first playable loop — implementation handoff prepared
 
 Use the selected Gale windswept grassland and Len's tileset to define a small return journey. Proposed terrain test: a terraced area with an ordinary stair route, a featherfall descent, and an upward-jump route. Proposed teaching sequence: learn traversal near the settlement; encounter an enemy where Gust creates room to evade; collect a local material; return to manipulate it into one speed-, stealth-, or evasion-related improvement; revisit part of the route to feel the result. This covers the three established learning foundations before numeric balancing is finalized. Exact terrain, materials, skill acquisition order, quests, and improvements remain proposals. It does not imply that advanced Aura crafting or complete automation must appear in the opening.
 
-The initial repository inspection is recorded in section 11.1. Next, establish a reproducible runtime and map movement, actors, inventory, skills, crafting, and persistence against this loop. Later, test a minimal harvesting-module → Aura-buffer → machine network, with one possible skilled operator stage. These are implementation proposals, not an approved release scope or a decision to retain a particular old engine revision.
+The repository inspections are recorded in sections 11.1–11.2. The [starter-zone build specification](Aethyra-Gale-Starter-Zone-Build-Spec-v0.1.md) now provides the runtime gate and milestone checks for movement, actors, inventory, skills, crafting, and persistence. Later, test a minimal harvesting-module → Aura-buffer → machine network, with one possible skilled operator stage. These are implementation proposals, not an approved release scope or a decision to retain a particular old engine revision. There is enough defined design to begin the baseline without another broad mechanics questionnaire.
 
 ### Selected art foundation — import preparation
 
@@ -716,7 +748,11 @@ Source labels reference the user-supplied root-chat excerpts in this conversatio
 | S-AB | User message at 21:59 PDT on 4 October 2026: casting requires several calculations and chance; high-level hue-intensive skills using stacks of low-level material should require incredible mastery, specific flow-improving items/skills, or success on a calculated chance roll |
 | S-AC | User message at 22:05 PDT on 4 October 2026: every starter teaches exploration, combat, and hue-channeling crafting; Gale featherfall/boosted jump, Gust knockback/evasion, and material manipulation for speed/stealth/evasion; common cadence with distinct hue-cultural experiences |
 | S-AD | User message at 22:09 PDT on 4 October 2026: featherfall descends map layers without stairs; another skill jumps back up; distinct Gale pathways make basic Gale mastery desirable for all players |
-| S-AE | User answers on 5 October 2026, after the first playable demo: hue as the world's power source; the eight defined hues with Decay anti-life and Void anti-light, and rare Aura/Decay/Void biomes; protected biome cores; altars near the core (items, skills, bosses) and mastery levels at the core; concentration-dependent regeneration; chosen starting biome and homeland; Gale culture; sandbox direction; click-target, WASD and hotbar control template; hue combination solo and in co-op; cozy or checkpoint-style failure under consideration |
+| S-AE | User message at 22:17 PDT on 4 October 2026: approves the preceding Gust-off-ledge suggestion and asks what is needed to implement a starter-zone test; does not define fall damage or PvP behavior |
+| S-AF | User attachment and message at 08:12 PDT on 5 October 2026: supplies Aethyra-windows.zip as a functional placeholder starter zone built by merging Aethyra and tmwAthena repositories |
+| S-AG | User message at 08:47 PDT on 5 October 2026: confirms the binary runs and all skills work as expected; asks whether character stats, skills and GUI should be next |
+| S-AH | User message at 09:20 PDT on 5 October 2026: requests detailed gameplay, UI and mastery/skill requirements plus sweeping implementation passes that also frame later biomes and midgame/endgame content |
+| S-AI | User answers on 5 October 2026, after the first playable demo: hue as the world's power source; the eight defined hues with Decay anti-life and Void anti-light, and rare Aura/Decay/Void biomes; protected biome cores; altars near the core (items, skills, bosses) and mastery levels at the core; concentration-dependent regeneration; chosen starting biome and homeland; Gale culture; sandbox direction; click-target, WASD and hotbar control template; hue combination solo and in co-op; cozy or checkpoint-style failure under consideration |
 | R-H | Historical retrieval of CP-H around 2 October 2024 and later Task 3 updates: eight hues, mastery, energy handling, pair examples; original role attribution was inconsistent across summaries |
 | R-A | Historical retrieval of later CP-R discussions: seven named properties when weight is separate; confirms thermal conductivity and Roman tiers; direct visible corrections take precedence |
 | R-W | Historical retrieval of biome/crafting descriptions around 2–3 October 2024: landscape/affinity descriptions; treated as context where original approval is unavailable |
@@ -770,10 +806,10 @@ Source labels reference the user-supplied root-chat excerpts in this conversatio
 
 > “Players could descend map layers without stairs by using featherfall. They can use another skill to jump back up.” (S-AD)
 
-> “Hue is the source of power in the world. It fills the natural world and fuels each biome with its unique energy.” (S-AE)
+> “Hue is the source of power in the world. It fills the natural world and fuels each biome with its unique energy.” (S-AI)
 
-> “The player is just a person in the world learning to push and pull against a magical reality” (S-AE)
+> “The player is just a person in the world learning to push and pull against a magical reality” (S-AI)
 
-> “Primarily sandbox - discovering, exploring and building within the world is the story” (S-AE)
+> “Primarily sandbox - discovering, exploring and building within the world is the story” (S-AI)
 
 This recovery preserves the rules available now and makes the limits of recovery explicit. Future edits should identify the rule being changed and the source or decision authorizing that change.
