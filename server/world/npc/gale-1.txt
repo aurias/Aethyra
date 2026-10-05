@@ -1,0 +1,10 @@
+// Windswept Meadow (test map). First NPC for bringing up the server.
+gale-1,14,22,0|script|Windkeeper Ama|105
+{
+    mes "[Windkeeper Ama]";
+    mes "\"Welcome to the meadow. Feel how the wind leans on the grass?\"";
+    next;
+    mes "[Windkeeper Ama]";
+    mes "\"That is Gale. Here, everything listens to it a little.\"";
+    close;
+}

@@ -1,0 +1,14 @@
+// Character parameters readable from scripts: name, SP id (src/mmo/clif.t.hpp), 1 = parameter.
+SPEED       0  1
+BASEEXP     1  1
+JOBEXP      2  1
+Hp          5  1
+MaxHp       6  1
+Sp          7  1
+MaxSp       8  1
+BaseLevel   11 1
+SKILLPOINT  12 1
+Zeny        20 1
+Sex         21 1
+Weight      24 1
+MaxWeight   25 1

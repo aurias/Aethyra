@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<!-- Placeholder item database. Negative ids are character bodies/hair. -->
+<items>
+ <item id="-100" type="other" name="body">
+  <sprite gender="male">placeholder-player.xml</sprite>
+  <sprite gender="female">placeholder-player.xml</sprite>
+ </item>
+ <item id="701" image="breeze-reed.png" name="Breeze Reed" type="generic"
+       weight="1" description="A hollow meadow reed. Wind lingers inside it."
+       effect="Natural Gale vessel (placeholder)"/>
+</items>

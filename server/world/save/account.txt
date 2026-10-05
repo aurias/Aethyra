@@ -1,0 +1,3 @@
+0	aethyra-char	change-me-char	-	S	0	0	a@a.com	-	0	-	-	0	
+2000000	aethyra-test	test-pass	-	M	0	0	a@a.com	-	0	-	-	0	
+%newid%	2000001

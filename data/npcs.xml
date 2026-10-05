@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<npcs>
+ <npc id="105">
+  <sprite>placeholder-npc.xml</sprite>
+ </npc>
+</npcs>

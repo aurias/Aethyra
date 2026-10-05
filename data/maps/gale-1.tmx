@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" width="40" height="30" tilewidth="32" tileheight="32">
+ <properties>
+  <property name="name" value="Windswept Meadow (test)"/>
+ </properties>
+ <tileset firstgid="1" name="placeholder-gale" tilewidth="32" tileheight="32">
+  <image source="../graphics/tiles/placeholder-gale.png" width="256" height="32"/>
+ </tileset>
+ <tileset firstgid="9" name="collision" tilewidth="32" tileheight="32">
+  <image source="../graphics/tiles/collision.png" width="64" height="32"/>
+ </tileset>
+  <layer name="ground" width="40" height="30">
+   <data encoding="base64" compression="gzip">H4sIAAAAAAACA+2V0QqAIAxFbWr6/19cDwYi6qYtXbCHQ4F0OThvOmOMUxRFUcRhEc6EFcpuv+MmpGeNmKitQfbeywDiWi+j9U3pt9IJCHml30onyh725rvLKc+r+X3tBAN5j99KpzCQ15qvhO6W85XW3dKPy8k3AIb/39t98gijPYmDYLPD/GZ7wnWeML/ZnnB2lzLbHXcBd3dB8L272wmEOwXhTn/pyQVSzqDVwBIAAA==</data>
+  </layer>
+  <layer name="fringe" width="40" height="30">
+   <data encoding="base64" compression="gzip">H4sIAAAAAAACA+3BMQEAAADCoPVPbQ0PoAAAAADg1wAW4j6/wBIAAA==</data>
+  </layer>
+  <layer name="collision" width="40" height="30">
+   <data encoding="base64" compression="gzip">H4sIAAAAAAACA+3XoQ0AQAhD0dpj/4FZAQShR76ofwJKCElhnmcafPjw4Zv2VbrRvbu5H+wHPnz47vuqPbzh69wKfP/53OePfsF36f/YTgKAS0N3wBIAAA==</data>
+  </layer>
+</map>
