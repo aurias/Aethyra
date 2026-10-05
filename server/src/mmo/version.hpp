@@ -45,7 +45,12 @@ namespace tmwa
 // 7 = manaplus 1.6.5.7 to 1.8.9.1 (adds SMSG_MAP_SET_TILES_TYPE)
 // 8 = manaplus 1.8.9.1 to ... (adds support for GM groups)
 // 9 = manaplus ... to (adds support for player HP)
-#define MIN_CLIENT_VERSION 6
+// Aethyra: the Aethyra client descends from the 2009 Mana/TMW client and
+// speaks the version 1 dialect above; the server's fallbacks for older
+// clients cover it. Aethyra-specific protocol versions will be numbered
+// from AETHYRA_PROTOCOL_BASE so they never collide with ManaPlus releases.
+#define MIN_CLIENT_VERSION 1
+#define AETHYRA_PROTOCOL_BASE 100
 
 // TODO now that I generate the protocol, split 'flags' out of the struct
 struct Version
