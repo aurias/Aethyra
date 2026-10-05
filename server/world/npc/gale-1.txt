@@ -18,6 +18,7 @@ L_Skills:
     next;
     mes "[Windkeeper Ama]";
     mes "\"Each one draws on your Gale energy, the green bar. It returns quickly while you breathe the open air.\"";
+    mes "\"Breeze Reeds hold a little wind. Choose them as supply in your pack (Supply button) and they lend you the current you cannot channel alone. Ask too much of them and they burst.\"";
     mes "\"Bring me three Meadow Herbs and three Windflower Petals and I will brew you a Gale Tonic.\"";
     goto L_Close;
 

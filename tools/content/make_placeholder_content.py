@@ -339,6 +339,14 @@ ITEM_ICONS = {
         (150, 190, 120, 255) if abs(x - 16 - (y - 16) // 6) <= 1 and 4 <= y < 30
         else (220, 210, 170, 255) if abs(x - 20) + abs(y - 8) <= 3
         else None),
+    # Thicker, darker, banded: the provisional test grade.
+    'tempered-reed': lambda x, y: (
+        (200, 170, 90, 255) if abs(x - 16 - (y - 16) // 6) <= 2 and 4 <= y < 30
+        and y % 6 == 0
+        else (110, 150, 90, 255) if abs(x - 16 - (y - 16) // 6) <= 2
+        and 4 <= y < 30
+        else (220, 230, 200, 255) if abs(x - 21) + abs(y - 7) <= 3
+        else None),
     'grass-fiber': lambda x, y: (
         (140, 180, 100, 255) if 6 <= y < 28 and (x - y // 4) % 5 == 0
         and 8 <= x < 26 else
@@ -437,7 +445,11 @@ def write_databases(data):
  </item>
  <item id="701" image="breeze-reed.png" name="Breeze Reed" type="generic"
        weight="1" description="A hollow meadow reed. Wind lingers inside it."
-       effect="Natural Gale vessel (not yet usable)"/>
+       effect="Gale vessel: holds 20 energy, safe current 4. Select it as supply in the inventory."/>
+ <item id="706" image="tempered-reed.png" name="Tempered Reed (test grade)"
+       type="generic" weight="2"
+       description="A provisional better-grade reed for comparison tests."
+       effect="Gale vessel: holds 40 energy, safe current 9."/>
  <item id="702" image="grass-fiber.png" name="Grass Fiber" type="generic"
        weight="1" description="Tough meadow grass, cut clean by the wind."/>
  <item id="703" image="meadow-herb.png" name="Meadow Herb" type="usable"

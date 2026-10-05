@@ -35,7 +35,10 @@
  * Protocol version, reported to the eAthena char and mapserver who can adjust
  * the protocol accordingly.
  */
-#define CLIENT_PROTOCOL_VERSION      1
+/** Aethyra protocol 2 (hue state and vessels), sent as 100 + 2 so tmwa
+ *  never mistakes it for a ManaPlus release; see the server's
+ *  mmo/version.hpp. */
+#define CLIENT_PROTOCOL_VERSION      102
 
 class MessageHandler;
 class MessageIn;

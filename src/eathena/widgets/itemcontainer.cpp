@@ -28,6 +28,8 @@
 
 #include "itemcontainer.h"
 
+#include "../huestate.h"
+
 #include "../gui/itempopup.h"
 
 #include "../structs/inventory.h"
@@ -48,6 +50,8 @@
 #include "../../core/image/image.h"
 
 #include "../../core/utils/dtor.h"
+#include "../../core/map/sprite/localplayer.h"
+
 #include "../../core/utils/stringutils.h"
 
 const int ItemContainer::gridWidth = 36;  // item icon width + 4
@@ -227,6 +231,15 @@ void ItemContainer::draw(gcn::Graphics *graphics)
                 text,
                 itemX + gridWidth / 2, itemY + gridHeight - 11,
                 gcn::Graphics::CENTER);
+
+        // Aethyra: mark vessel stacks selected as hue supply.
+        const Hue::Lot *lot = Hue::lotAt(i);
+        if (lot && lot->supply && mInventory == player_node->getInventory())
+        {
+            graphics->setColor(gcn::Color(40, 140, 100));
+            graphics->drawText(strprintf("S%d", lot->supply), itemX + 2,
+                               itemY + 1, gcn::Graphics::LEFT);
+        }
 
         // Move on to the next visible slot
         gridSlot++;

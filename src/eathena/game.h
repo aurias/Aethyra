@@ -50,6 +50,7 @@ class Game
         MessageHandlerPtr mPlayerHandler;
         MessageHandlerPtr mSkillHandler;
         MessageHandlerPtr mTradeHandler;
+        MessageHandlerPtr mHueHandler;
 };
 
 extern Game *game;

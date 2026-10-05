@@ -38,6 +38,11 @@ static const int STORAGE_OFFSET = 1;
 #define SMSG_PLAYER_MOVE             0x01da /**< A nearby player moves */
 #define SMSG_PLAYER_STOP             0x0088 /**< Stop walking, set position */
 #define SMSG_AETHYRA_BEING_SLIDE     0x0217 /**< Instant move: dash, knockback */
+#define SMSG_AETHYRA_HUE_RESULT      0x0219 /**< Outcome of a hue request */
+#define SMSG_AETHYRA_HUE_STATE       0x021a /**< Hue records */
+#define SMSG_AETHYRA_HUE_SKILLS      0x021b /**< Learned hue skills */
+#define SMSG_AETHYRA_ITEM_LOT        0x021c /**< Vessel stack state */
+#define SMSG_AETHYRA_HUE_DEFINITIONS 0x021f /**< Skill and vessel rules */
 #define SMSG_PLAYER_MOVE_TO_ATTACK   0x0139 /**< Move to within attack range */
 #define SMSG_PLAYER_STAT_UPDATE_1    0x00b0
 #define SMSG_PLAYER_STAT_UPDATE_2    0x00b1
@@ -143,7 +148,9 @@ static const int STORAGE_OFFSET = 1;
 #define CMSG_PLAYER_EQUIP            0x00a9
 #define CMSG_PLAYER_UNEQUIP          0x00ab
 #define CMSG_PLAYER_CHANGE_DIR       0x009b
-#define CMSG_AETHYRA_USE_SKILL       0x0216 /**< Use a hue skill */
+#define CMSG_AETHYRA_HUE_ACTION      0x0218 /**< Use a hue skill */
+#define CMSG_AETHYRA_SELECT_SUPPLY   0x021d /**< (De)select a vessel stack */
+#define CMSG_AETHYRA_LEARN_SKILL     0x021e /**< Learn or upgrade a skill */
 
 #define CMSG_NPC_TALK                0x0090
 #define CMSG_NPC_NEXT_REQUEST        0x00b9

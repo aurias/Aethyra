@@ -259,6 +259,8 @@ aethyra_SOURCES = \
 	      eathena/playerrelations.h \
 	      eathena/statemanager.cpp \
 	      eathena/statemanager.h \
+	      eathena/huestate.cpp \
+	      eathena/huestate.h \
 	      eathena/worldhost.cpp \
 	      eathena/worldhost.h \
 	      eathena/db/colordb.cpp \
@@ -299,6 +301,8 @@ aethyra_SOURCES = \
 	      eathena/gui/emotewindow.h \
 	      eathena/gui/equipmentwindow.cpp \
 	      eathena/gui/equipmentwindow.h \
+	      eathena/gui/huewindow.cpp \
+	      eathena/gui/huewindow.h \
 	      eathena/gui/inventorywindow.cpp \
 	      eathena/gui/inventorywindow.h \
 	      eathena/gui/itempopup.cpp \
@@ -392,6 +396,8 @@ aethyra_SOURCES = \
 	      eathena/net/playerhandler.h \
 	      eathena/net/protocol.h \
 	      eathena/net/serverinfo.h \
+	      eathena/net/huehandler.cpp \
+	      eathena/net/huehandler.h \
 	      eathena/net/skillhandler.cpp \
 	      eathena/net/skillhandler.h \
 	      eathena/net/tradehandler.cpp \

@@ -51,6 +51,9 @@ class InventoryWindow : public Window, public gcn::SelectionListener
          */
         void logic();
 
+        /** Aethyra: describe the selected vessel stack. */
+        void updateVessel();
+
         /**
          * Called when receiving actions from the widgets.
          */
@@ -117,6 +120,10 @@ class InventoryWindow : public Window, public gcn::SelectionListener
         int mMaxWeight;
         gcn::Button *mShortcutButton, *mTradeButton, *mStoreButton;
         gcn::Button *mUseButton, *mDropButton;
+        gcn::Button *mSupplyButton;     /**< Aethyra: select a vessel */
+        gcn::Label *mVesselLabel;       /**< Aethyra: selected vessel */
+        gcn::Label *mVesselState;       /**< Aethyra: its charge and limits */
+        unsigned int mHueRevision;
         gcn::ScrollArea *mInvenScroll;
 
         gcn::Label *mWeightLabel;

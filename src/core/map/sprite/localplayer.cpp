@@ -423,16 +423,6 @@ void LocalPlayer::slideTo(const Uint16 &x, const Uint16 &y)
     Being::slideTo(x, y);
 }
 
-void LocalPlayer::useHueSkill(const int skill)
-{
-    if (mAction == DEAD)
-        return;
-
-    MessageOut outMsg(CMSG_AETHYRA_USE_SKILL);
-    outMsg.writeInt8(skill);
-    outMsg.writeInt8(mDirection);
-}
-
 void LocalPlayer::setWalkingDir(const int dir)
 {
     if (mWalkingDir != dir)

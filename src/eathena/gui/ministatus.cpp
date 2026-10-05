@@ -20,6 +20,10 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include <algorithm>
+
+#include <guichan/font.hpp>
+
 #include "ministatus.h"
 
 #include "../../bindings/guichan/gui.h"
@@ -31,7 +35,15 @@
 
 #include "../../core/map/sprite/localplayer.h"
 
+#include "../../core/utils/gettext.h"
 #include "../../core/utils/stringutils.h"
+
+#include "../huestate.h"
+
+#include "../structs/inventory.h"
+#include "../structs/item.h"
+
+#include "../../bindings/guichan/widgets/label.h"
 
 MiniStatusWindow::MiniStatusWindow():
     Popup("MiniStatus")
@@ -46,7 +58,7 @@ MiniStatusWindow::MiniStatusWindow():
     mHpBar->addColor(230, 171, 34);
     mHpBar->addColor(0, 171, 34);
 
-    // The MP pool is Gale energy: wind greens rather than mana blue.
+    // Gale energy (from the server's hue state): wind greens.
     mMpBar = new ProgressBar(0.0f, 100, 20, gcn::Color(90, 160, 140));
     mMpBar->addColor(110, 190, 160);
     mMpBar->addColor(150, 220, 190);
@@ -57,9 +69,13 @@ MiniStatusWindow::MiniStatusWindow():
     mMpBar->setPosition(mHpBar->getWidth() + 3, 3);
     mXpBar->setPosition(mMpBar->getX() + mMpBar->getWidth() + 3, 3);
 
+    mHueLabel = new Label("");
+    mHueLabel->setPosition(mMpBar->getX(), mMpBar->getY() + mMpBar->getHeight() + 2);
+
     add(mHpBar);
     add(mMpBar);
     add(mXpBar);
+    add(mHueLabel);
 
     fontChanged();
 }
@@ -71,7 +87,7 @@ void MiniStatusWindow::fontChanged()
     update();
 
     setContentSize(mXpBar->getX() + mXpBar->getWidth(),
-                   mXpBar->getY() + mXpBar->getHeight());
+                   mHueLabel->getY() + getFont()->getHeight());
 }
 
 void MiniStatusWindow::update()
@@ -83,15 +99,45 @@ void MiniStatusWindow::update()
                               // (uninitialized pointer most likely)
     if (xp > 1.0f) xp = 1.0f;
 
+    const Hue::Record &gale = Hue::state().records[Hue::GALE];
+
     mHpBar->setProgress((float) player_node->mHp / player_node->mMaxHp);
-    mMpBar->setProgress((float) player_node->mMp / player_node->mMaxMp);
+    mMpBar->setProgress(gale.capacity ? (float) gale.energy / gale.capacity : 0);
     mXpBar->setProgress(xp);
 
     // Update labels
     mHpBar->setText(toString(player_node->mHp));
     mHpBar->adjustHeight();
-    mMpBar->setText(toString(player_node->mMp));
+    mMpBar->setText(strprintf("%d/%d", gale.energy, gale.capacity));
     mMpBar->adjustHeight();
+
+    // Allowance in use, and the energy the selected supply holds.
+    int supply = 0, stacks = 0;
+    const std::map<int, Hue::Lot> &lots = Hue::state().lots;
+    for (std::map<int, Hue::Lot>::const_iterator it = lots.begin();
+         it != lots.end(); ++it)
+    {
+        const Hue::Lot *lot = Hue::lotAt(it->first);
+        Item *item = player_node->getInventory()->getItem(it->first);
+        if (lot && lot->supply && item)
+        {
+            supply += Hue::lotEnergy(*lot, item->getQuantity());
+            stacks++;
+        }
+    }
+    std::string hue = gale.access
+        ? strprintf(_("Gale %d/%d active"), gale.allowanceUsed, gale.allowance)
+        : std::string();
+    if (stacks)
+        hue += strprintf(_(" | supply %d in %d stack(s)"), supply, stacks);
+    if (mHueLabel->getCaption() != hue)
+    {
+        mHueLabel->setCaption(hue);
+        mHueLabel->adjustSize();
+        setContentSize(std::max(mXpBar->getX() + mXpBar->getWidth(),
+                                mHueLabel->getX() + mHueLabel->getWidth()),
+                       mHueLabel->getY() + getFont()->getHeight());
+    }
     mXpBar->setText(strprintf(mPrecision.c_str(), 100 * xp) + "%");
     mXpBar->adjustHeight();
 

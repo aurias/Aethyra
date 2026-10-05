@@ -35,6 +35,8 @@
 #include "../../core/utils/gettext.h"
 #include "../../core/utils/stringutils.h"
 
+#include "../huestate.h"
+
 StatusWindow::StatusWindow(LocalPlayer *player):
     Window(player->getName()),
     mPlayer(player)
@@ -195,7 +197,8 @@ void StatusWindow::update()
 
     mHpBar->setText(toString(mPlayer->mHp) + "/" + toString(mPlayer->mMaxHp));
 
-    mMpBar->setText(toString(mPlayer->mMp) + "/" + toString(mPlayer->mMaxMp));
+    const Hue::Record &gale = Hue::state().records[Hue::GALE];
+    mMpBar->setText(toString(gale.energy) + "/" + toString(gale.capacity));
 
     mXpBar->setText(toString(mPlayer->getXp()) + "/" + 
                     toString(mPlayer->mXpForNextLevel));
@@ -204,7 +207,7 @@ void StatusWindow::update()
                     toString(mPlayer->mJobXpForNextLevel));
 
     mHpBar->setProgress((float) mPlayer->mHp / mPlayer->mMaxHp);
-    mMpBar->setProgress((float) mPlayer->mMp / mPlayer->mMaxMp);
+    mMpBar->setProgress(gale.capacity ? (float) gale.energy / gale.capacity : 0);
 
     mXpBar->setProgress((float) mPlayer->getXp() / mPlayer->mXpForNextLevel);
     mJobBar->setProgress((float) mPlayer->mJobXp / mPlayer->mJobXpForNextLevel);

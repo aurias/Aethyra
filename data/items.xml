@@ -7,7 +7,11 @@
  </item>
  <item id="701" image="breeze-reed.png" name="Breeze Reed" type="generic"
        weight="1" description="A hollow meadow reed. Wind lingers inside it."
-       effect="Natural Gale vessel (not yet usable)"/>
+       effect="Gale vessel: holds 20 energy, safe current 4. Select it as supply in the inventory."/>
+ <item id="706" image="tempered-reed.png" name="Tempered Reed (test grade)"
+       type="generic" weight="2"
+       description="A provisional better-grade reed for comparison tests."
+       effect="Gale vessel: holds 40 energy, safe current 9."/>
  <item id="702" image="grass-fiber.png" name="Grass Fiber" type="generic"
        weight="1" description="Tough meadow grass, cut clean by the wind."/>
  <item id="703" image="meadow-herb.png" name="Meadow Herb" type="usable"

@@ -45,6 +45,8 @@
 #include "../../core/utils/dtor.h"
 #include "../../core/utils/gettext.h"
 
+#include "../../eathena/huestate.h"
+#include "../../eathena/gui/huewindow.h"
 #include "../../eathena/beingmanager.h"
 #include "../../eathena/flooritemmanager.h"
 #include "../../eathena/playerrelations.h"
@@ -284,7 +286,7 @@ bool InputManager::handleKeyboardInput(const SDL_Event &event)
                     requestedWindow = equipmentWindow;
                     break;
                 case KeyboardConfig::KEY_WINDOW_SKILL:
-                    requestedWindow = skillDialog;
+                    requestedWindow = hueSkillWindow;
                     break;
                 case KeyboardConfig::KEY_WINDOW_MINIMAP:
                     minimap->toggle();
@@ -307,6 +309,8 @@ bool InputManager::handleKeyboardInput(const SDL_Event &event)
                     inventoryWindow->hide();
                     equipmentWindow->hide();
                     skillDialog->hide();
+                    hueWindow->hide();
+                    hueSkillWindow->hide();
                     chatWindow->hide();
                     itemShortcutWindow->hide();
                     setupWindow->hide();
@@ -448,17 +452,21 @@ bool InputManager::handleKeyboardInput(const SDL_Event &event)
                             used = true;
                         }
                         break;
-                    // Gale hue skills
+                    // Gale hue skills; with Shift the player accepts the
+                    // risk of overloading vessels.
                     case KeyboardConfig::KEY_SKILL_DASH:
-                        player_node->useHueSkill(1);
+                        Hue::useSkill(Hue::SKILL_DASH,
+                                (SDL_GetModState() & KMOD_SHIFT) != 0);
                         used = true;
                         break;
                     case KeyboardConfig::KEY_SKILL_GUST:
-                        player_node->useHueSkill(2);
+                        Hue::useSkill(Hue::SKILL_GUST,
+                                (SDL_GetModState() & KMOD_SHIFT) != 0);
                         used = true;
                         break;
                     case KeyboardConfig::KEY_SKILL_WIND_SCYTHE:
-                        player_node->useHueSkill(3);
+                        Hue::useSkill(Hue::SKILL_WIND_SCYTHE,
+                                (SDL_GetModState() & KMOD_SHIFT) != 0);
                         used = true;
                         break;
                     // Player sit action

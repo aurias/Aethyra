@@ -28,6 +28,7 @@
 #include "equipmentwindow.h"
 #include "inventorywindow.h"
 #include "menubar.h"
+#include "huewindow.h"
 #include "skill.h"
 #include "status.h"
 
@@ -61,6 +62,7 @@ MenuBar::MenuBar():
         N_("Status"),
         N_("Equipment"),
         N_("Inventory"),
+        N_("Hues"),
         N_("Skills"),
         N_("Emote"),
         N_("Setup"),
@@ -111,8 +113,10 @@ void MenuBarListener::action(const gcn::ActionEvent &event)
         window = equipmentWindow;
     else if (event.getId() == "Inventory")
         window = inventoryWindow;
+    else if (event.getId() == "Hues")
+        window = hueWindow;
     else if (event.getId() == "Skills")
-        window = skillDialog;
+        window = hueSkillWindow;
     else if (event.getId() == "Emote")
         window = emoteWindow;
     else if (event.getId() == "Setup")

@@ -75,6 +75,9 @@
 #include "net/protocol.h"
 #include "net/skillhandler.h"
 #include "net/tradehandler.h"
+#include "net/huehandler.h"
+#include "gui/huewindow.h"
+#include "huestate.h"
 
 #include "widgets/emoteshortcutcontainer.h"
 #include "widgets/itemshortcutcontainer.h"
@@ -156,6 +159,8 @@ void createGuiWindows()
     npcTextDialog = new NpcTextDialog();
     sellDialog = new SellDialog();
     skillDialog = new SkillDialog();
+    hueWindow = new HueWindow();
+    hueSkillWindow = new HueSkillWindow();
     statusWindow = new StatusWindow(player_node);
     storageWindow = new StorageWindow();
     tradeWindow = new TradeWindow();
@@ -192,6 +197,8 @@ static void destroyGuiWindows()
     destroy(npcTextDialog);
     destroy(sellDialog);
     destroy(skillDialog);
+    destroy(hueWindow);
+    destroy(hueSkillWindow);
     destroy(statusWindow);
     destroy(storageWindow);
     destroy(tradeWindow);
@@ -223,7 +230,8 @@ Game::Game():
     mNpcHandler(new NPCHandler()),
     mPlayerHandler(new PlayerHandler()),
     mSkillHandler(new SkillHandler()),
-    mTradeHandler(new TradeHandler())
+    mTradeHandler(new TradeHandler()),
+    mHueHandler(new HueHandler())
 {
     network->registerHandler(mBeingHandler.get());
     network->registerHandler(mBuySellHandler.get());
@@ -235,6 +243,8 @@ Game::Game():
     network->registerHandler(mPlayerHandler.get());
     network->registerHandler(mSkillHandler.get());
     network->registerHandler(mTradeHandler.get());
+    Hue::clear();
+    network->registerHandler(mHueHandler.get());
 
     beingManager = new BeingManager();
     floorItemManager = new FloorItemManager();
@@ -293,6 +303,7 @@ Game::~Game()
     network->unregisterHandler(mPlayerHandler.get());
     network->unregisterHandler(mSkillHandler.get());
     network->unregisterHandler(mTradeHandler.get());
+    network->unregisterHandler(mHueHandler.get());
 }
 
 void Game::logic()

@@ -25,6 +25,7 @@
 
 #include "../../bindings/guichan/widgets/popup.h"
 
+class Label;
 class ProgressBar;
 
 /**
@@ -52,6 +53,9 @@ class MiniStatusWindow : public Popup
         ProgressBar *mHpBar;
         ProgressBar *mMpBar;
         ProgressBar *mXpBar;
+
+        /** Gale allowance and selected supply under the bars. */
+        Label *mHueLabel;
 
         std::string mPrecision;
 };

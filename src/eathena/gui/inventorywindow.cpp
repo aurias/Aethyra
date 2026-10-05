@@ -27,6 +27,8 @@
 
 #include "equipmentwindow.h"
 #include "inventorywindow.h"
+
+#include "../huestate.h"
 #include "itemamount.h"
 #include "storagewindow.h"
 #include "trade.h"
@@ -81,6 +83,12 @@ InventoryWindow::InventoryWindow(int invSize):
 
     mShortcutButton = new Button(_("Shortcuts"), "shortcuts", this);
 
+    mSupplyButton = new Button(_("Supply"), "supply", this);
+    mSupplyButton->setEnabled(false);
+    mVesselLabel = new Label("");
+    mVesselState = new Label("");
+    mHueRevision = 0;
+
     mItems = new ItemContainer(player_node->getInventory(), "showpopupmenu", this);
     mItems->addSelectionListener(this);
 
@@ -119,10 +127,13 @@ void InventoryWindow::fontChanged()
     place(7, 0, mSlotsBar, 2);
     place(0, 1, mInvenScroll, 9, 4);
     place(0, 5, mShortcutButton);
+    place(1, 5, mSupplyButton, 2);
     place(5, 5, mStoreButton);
     place(6, 5, mTradeButton);
     place(7, 5, mDropButton);
     place(8, 5, mUseButton);
+    place(0, 6, mVesselLabel, 9).setPadding(3);
+    place(0, 7, mVesselState, 9).setPadding(3);
 
     Layout &layout = getLayout();
     layout.setRowHeight(0, mDropButton->getHeight());
@@ -164,6 +175,50 @@ void InventoryWindow::logic()
 
     mStoreButton->setVisible(storageWindow->isVisible());
     mTradeButton->setVisible(tradeWindow->isVisible());
+
+    if (mHueRevision != Hue::state().revision)
+    {
+        mHueRevision = Hue::state().revision;
+        updateVessel();
+    }
+}
+
+void InventoryWindow::updateVessel()
+{
+    const Item *item = mItems->getSelectedItem();
+    const Hue::Lot *lot = item ? Hue::lotAt(item->getInvIndex()) : NULL;
+    const Hue::Vessel *vessel = lot ? Hue::vessel(lot->item) : NULL;
+
+    std::string text, state;
+    if (vessel)
+    {
+        // Name and grade, supply role; then stored/capacity, safe current
+        // and condition.
+        static const char *grades[] = { "", "I", "II", "III", "IV", "V" };
+        const int amount = item->getQuantity();
+        const Hue::Record &rec = Hue::state().records[vessel->hue];
+        const int safe = vessel->safeCurrent * (100 + rec.flowPct) / 100;
+        text = strprintf(_("%s: grade %s %s vessel, %s"),
+                         vessel->label.c_str(),
+                         grades[std::min(std::max(vessel->grade, 0), 5)],
+                         Hue::name(vessel->hue),
+                         lot->supply ? strprintf(_("supply #%d"),
+                                                 lot->supply).c_str()
+                                     : _("not selected"));
+        state = strprintf(_("Energy %d/%d, safe current %d"),
+                          Hue::lotEnergy(*lot, amount),
+                          vessel->capacity * amount, vessel->safeCurrent);
+        if (safe != vessel->safeCurrent)
+            state += strprintf(_(" (%d with flow)"), safe);
+        state += strprintf(_(", condition %d/%d"), lot->condition,
+                           vessel->maxCondition);
+    }
+    mVesselLabel->setCaption(text);
+    mVesselLabel->adjustSize();
+    mVesselState->setCaption(state);
+    mVesselState->adjustSize();
+    mSupplyButton->setEnabled(vessel != NULL);
+    mSupplyButton->setCaption(lot && lot->supply ? _("Release") : _("Supply"));
 }
 
 void InventoryWindow::distributeValueChangedEvent()
@@ -191,7 +246,13 @@ void InventoryWindow::action(const gcn::ActionEvent &event)
     if (!item)
         return;
 
-    if (event.getId() == "trade" && tradeWindow->canTrade())
+    if (event.getId() == "supply")
+    {
+        const Hue::Lot *lot = Hue::lotAt(item->getInvIndex());
+        if (lot)
+            Hue::selectSupply(item->getInvIndex(), !lot->supply);
+    }
+    else if (event.getId() == "trade" && tradeWindow->canTrade())
     {
         if (item->getQuantity() == 1)
         {
@@ -267,6 +328,7 @@ void InventoryWindow::updateButtons()
     mStoreButton->setEnabled(selectedItem != NULL);
     mTradeButton->setEnabled(selectedItem != NULL && tradeWindow->canTrade() &&
                              !tradeWindow->tradingItem(selectedItem));
+    updateVessel();
     fontChanged();
 }
 
