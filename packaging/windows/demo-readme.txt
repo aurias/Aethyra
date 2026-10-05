@@ -5,6 +5,9 @@ HOSTING A GAME
  1. Run aethyra.exe. Choose SDL or OpenGL when asked (SDL is the safe choice).
  2. On the login screen press "Host World". Your world starts on this PC.
  3. Press "Register", pick a name and password, then create a character.
+ The first time, Windows Firewall asks whether aethyra-server.exe may
+ accept connections: allow it (private networks at least), or friends
+ cannot join.
 
 JOINING A FRIEND
  1. Run aethyra.exe, type the host's address in "Server" (port 6901).
