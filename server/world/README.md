@@ -12,6 +12,27 @@ python3 server/tools/protoclient.py create-char 127.0.0.1 6901 aethyra-test test
 aethyra --data ./data -U aethyra-test -P test-pass -u -D   # with host 127.0.0.1, port 6901 in config.xml
 ```
 
+## Hosted worlds
+
+Players host from the client (Host World on the login screen, or
+`aethyra --host-world NAME`). The client copies this template to
+`<home>/.aethyra/worlds/NAME` on first use, gives it a random internal
+password and no accounts, and runs `aethyra-server` for it. The client
+expects `server/aethyra-server[.exe]` and this template as `server/world`
+next to its own executable; the `hostServerPath` and `hostWorldTemplate`
+config options override those paths.
+
+Friends connect to the host's address on port 6901. Over the internet the
+host forwards TCP ports 6901, 6121 and 5121 (or uses a VPN such as
+Tailscale or ZeroTier).
+
+The Windows server cross-compiles with MinGW-w64:
+
+```
+cmake -S server -B build/server-win -DCMAKE_TOOLCHAIN_FILE=server/cmake/mingw-w64-x86_64.cmake
+cmake --build build/server-win --target aethyra-server
+```
+
 ## Layout
 
 | Path | Contents |
