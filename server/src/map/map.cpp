@@ -1622,6 +1622,16 @@ int map::do_init(Slice<ZString> argv)
     if (!loaded_config_yet)
         runflag &= load_config_file("conf/tmwa-map.conf"_s, map_confs);
 
+    // Aethyra: the hue rules are not optional; an old world folder whose
+    // tmwa-map.conf lacks hue_db would otherwise crash at the first login.
+    if (hue_balance.rows.empty())
+    {
+        PRINTF("Fatal: no hue definitions loaded (hue_db missing from the map "
+                "config). This world's configuration is older than the server; "
+                "copy conf/, db/, npc/ and data/ from the new world template.\n"_fmt);
+        runflag = false;
+    }
+
     map_set_logfile();
 
     runflag &= map_readallmap();

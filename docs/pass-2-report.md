@@ -74,6 +74,19 @@ now have their database HP (Gust Hoppers 70).
 Not verified: the Windows client at runtime (CI build only); two real
 GUI clients together; trading/storing vessels (unchanged since Pass 1).
 
+## Fix after release: hosting an older world
+
+A world hosted from an earlier build kept that build's configuration,
+because Host World copied the template only when a world was created.
+The Pass 2 server then crashed at the first login (no hue definitions),
+which the client reported as an `SDLNet_TCP_Recv` error. Hosting now
+refreshes a world's game content (conf/, db/, npc/, data/) from the
+running build on every launch, keeping its saves and internal password;
+the server also refuses to start, with a message in the world's log,
+if hue definitions are missing. Tested with the real Linux client
+hosting a Pass 0 world folder with saves: the world starts, both
+characters log in and migrate.
+
 ## Saves and compatibility
 
 The save format is unchanged from Pass 1: Pass 1 worlds open directly.

@@ -61,8 +61,10 @@ account registered on that world), then host again and type in chat:
   @huegrant hue ember
   @huegrant skill 6 1
 
-Worlds are saved in your user folder under .aethyra\worlds. This version
-upgrades worlds from the first demo the first time it opens them (keeping
+Worlds are saved in your user folder under .aethyra\worlds. Each time
+you host a world, its game rules, maps and characters' surroundings are
+refreshed from this version (your saves and accounts are kept). This
+version upgrades saves from the first demo the first time it opens them (keeping
 a copy of the old saves as *.pre-hue1); the first demo cannot open them
 afterwards. Everyone must use this same version to join.
 

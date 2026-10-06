@@ -112,6 +112,91 @@ namespace
         return out.good();
     }
 
+    /** The internal password a world's conf files use, or "". */
+    std::string worldPassword(const fs::path &dir)
+    {
+        std::string text;
+        if (!readFile(dir / "conf" / "char.conf", text))
+            return "";
+        std::istringstream lines(text);
+        std::string line;
+        while (std::getline(lines, line))
+        {
+            if (line.compare(0, 7, "passwd:") != 0)
+                continue;
+            std::string value = line.substr(7);
+            value.erase(0, value.find_first_not_of(" \t"));
+            value.erase(value.find_last_not_of(" \t\r") + 1);
+            return value;
+        }
+        return "";
+    }
+
+    /** Give the world's conf files this internal password. */
+    bool applyPassword(const fs::path &dir, const std::string &password,
+                       std::string &error)
+    {
+        const char *confs[] = { "conf/login.conf", "conf/char.conf",
+                                "conf/map.conf" };
+        for (const char *name : confs)
+        {
+            std::string text;
+            if (!readFile(dir / name, text))
+            {
+                error = strprintf(_("World template is missing %s"), name);
+                return false;
+            }
+            std::string::size_type pos;
+            while ((pos = text.find(TEMPLATE_PASSWORD)) != std::string::npos)
+                text.replace(pos, TEMPLATE_PASSWORD.size(), password);
+            writeFile(dir / name, text);
+        }
+        return true;
+    }
+
+    /**
+     * A world is game content (conf/, db/, npc/, data/ from the template
+     * shipped with this build) plus its own saves (save/). Every time a
+     * world is hosted its game content is replaced by this build's, so an
+     * updated game never runs a world with stale rules; saves and the
+     * world's internal password are kept. The server migrates old saves.
+     */
+    bool refreshWorld(const fs::path &dir, std::string &error)
+    {
+        const fs::path source = templatePath();
+        if (!fs::exists(source / "conf"))
+        {
+            error = strprintf(_("World template not found at %s"),
+                              source.string().c_str());
+            return false;
+        }
+
+        std::string password = worldPassword(dir);
+        if (password.empty() || password == TEMPLATE_PASSWORD)
+            password = randomPassword();
+
+        const char *content[] = { "conf", "db", "npc", "data" };
+        for (const char *name : content)
+        {
+            std::error_code ec;
+            fs::remove_all(dir / name, ec);
+            fs::copy(source / name, dir / name, fs::copy_options::recursive,
+                     ec);
+            if (ec)
+            {
+                error = strprintf(_("Could not update world: %s"),
+                                  ec.message().c_str());
+                return false;
+            }
+        }
+        if (!applyPassword(dir, password, error))
+            return false;
+
+        logger->log("WorldHost: game content of %s updated from %s",
+                    dir.string().c_str(), source.string().c_str());
+        return true;
+    }
+
     /**
      * Copy the world template and give the copy its own credentials. The
      * internal password only links the services over loopback, but every
@@ -138,22 +223,8 @@ namespace
             return false;
         }
 
-        const std::string password = randomPassword();
-        const char *confs[] = { "conf/login.conf", "conf/char.conf",
-                                "conf/map.conf" };
-        for (const char *name : confs)
-        {
-            std::string text;
-            if (!readFile(dir / name, text))
-            {
-                error = strprintf(_("World template is missing %s"), name);
-                return false;
-            }
-            std::string::size_type pos;
-            while ((pos = text.find(TEMPLATE_PASSWORD)) != std::string::npos)
-                text.replace(pos, TEMPLATE_PASSWORD.size(), password);
-            writeFile(dir / name, text);
-        }
+        if (!applyPassword(dir, randomPassword(), error))
+            return false;
 
         // No accounts: players register themselves. (The services' own
         // link is authenticated by the conf files above, not this file.)
@@ -278,7 +349,12 @@ bool WorldHost::start(const std::string &name, std::string &error)
         return true;
 
     const fs::path world = fs::path(worldsDir()) / name;
-    if (!fs::exists(world / "conf") && !createWorld(world, error))
+    if (!fs::exists(world / "conf"))
+    {
+        if (!createWorld(world, error))
+            return false;
+    }
+    else if (!refreshWorld(world, error))
         return false;
 
     if (!launch(world, error))

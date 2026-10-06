@@ -32,3 +32,4 @@ reversible test default, not established lore; see
 | 2026-10-06 | Ember access and Spark are developer (GM) grants until altars exist | Framework Pass 3 ("developer-only second-hue grant") | Pass 5 altar |
 | 2026-10-06 | Live combinations come from a registry; the modifier pays its share from its own hue, holds its own activation and cooldown; any part failing to plan refuses the whole action; any part fizzling fizzles the whole | Framework §4.2; provisional | Pass 3 assemblies |
 | 2026-10-06 | monster_hp_rate set to 100 (the server default 0 gave monsters 1 HP) | Bug found in Pass 2 | — |
+| 2026-10-06 | Hosting a world refreshes its game content (conf, db, npc, data) from the running build's template, keeping save/ and the world's internal password; the server refuses to start without hue definitions | Bug: old worlds crashed the new server at login (SDLNet_TCP_Recv on the client) | Worlds with custom content |
