@@ -28,7 +28,6 @@ PIECES = {
     "sand_edges": (GROUND, (192, 128, 288, 224), "3x3 sand-in-grass border, centre empty"),
     "cobble": (GROUND, (32, 288, 96, 352), "2x2 cobbles"),
     "water_edges": (GROUND, (384, 256, 480, 352), "3x3 pond border, centre empty"),
-    "water": (GROUND, (480, 320, 512, 352), "open water"),
     "plateau": (CLIFF, (32, 0, 224, 224), "6x7 raised-ground template"),
     "stairs": (CLIFF, (320, 128, 416, 224), "3x3 stairs cut into a south face"),
     "bush_big": (OBJECTS, (64, 0, 192, 128), "bush cluster"),
@@ -50,6 +49,38 @@ PIECES = {
 }
 
 
+# Pieces whose box overlaps a neighbouring sprite: keep only the largest
+# connected (non-transparent) part.
+SINGLE = {"bush", "bush_big", "bush_small"}
+
+
+def largest_part(im):
+    w, h = im.size
+    alpha = im.getchannel("A").load()
+    seen = [[False] * w for _ in range(h)]
+    best = []
+    for y0 in range(h):
+        for x0 in range(w):
+            if seen[y0][x0] or alpha[x0, y0] == 0:
+                continue
+            part, todo = [], [(x0, y0)]
+            seen[y0][x0] = True
+            while todo:
+                x, y = todo.pop()
+                part.append((x, y))
+                for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+                    if 0 <= nx < w and 0 <= ny < h and not seen[ny][nx] and alpha[nx, ny] > 0:
+                        seen[ny][nx] = True
+                        todo.append((nx, ny))
+            if len(part) > len(best):
+                best = part
+    out = Image.new("RGBA", im.size)
+    src, dst = im.load(), out.load()
+    for x, y in best:
+        dst[x, y] = src[x, y]
+    return out
+
+
 def open_sheet(name):
     im = Image.open(os.path.join(SRC, name))
     if name.endswith(".psd"):
@@ -66,9 +97,20 @@ def main():
         if sheet not in sheets:
             sheets[sheet] = open_sheet(sheet)
         piece = sheets[sheet].crop(box)
+        if name in SINGLE:
+            piece = largest_part(piece)
         piece.save(os.path.join(OUT, name + ".png"))
         manifest[name] = {"sheet": sheet, "box": list(box), "size": list(piece.size),
                           "note": note}
+    # Open water: the pond border has no plain water cell, so tile the
+    # water half of its top edge.
+    edge = sheets[GROUND].crop((416, 272, 448, 288))
+    water = Image.new("RGBA", (32, 32))
+    water.paste(edge, (0, 0))
+    water.paste(edge, (0, 16))
+    water.save(os.path.join(OUT, "water.png"))
+    manifest["water"] = {"sheet": GROUND, "box": [416, 272, 448, 288], "size": [32, 32],
+                         "note": "open water: the pond edge's water half, tiled twice"}
     with open(os.path.join(OUT, "pieces.json"), "w") as f:
         json.dump(manifest, f, indent=1, sort_keys=True)
     print("wrote %d pieces to %s" % (len(manifest), OUT))

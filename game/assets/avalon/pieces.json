@@ -309,12 +309,12 @@
  },
  "water": {
   "box": [
-   480,
-   320,
-   512,
-   352
+   416,
+   272,
+   448,
+   288
   ],
-  "note": "open water",
+  "note": "open water: the pond edge's water half, tiled twice",
   "sheet": "ground_tiles.png",
   "size": [
    32,

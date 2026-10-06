@@ -11,7 +11,7 @@ extends RefCounted
 const MAX_INVENTORY := 40
 const PLAYER_ATTACK_MS := 900
 const RESPAWN_DELAY_MS := 3000
-const AUTOSAVE_MS := 60000
+const AUTOSAVE_MS := 30000
 const TALK_RANGE := 3
 const EXP_TABLE := [9, 16, 25, 36, 77, 112, 153, 200, 253, 320, 385, 490, 585, 700, 830,
 		970, 1120, 1260, 1420, 1620]
@@ -47,7 +47,9 @@ func _init(map_name := "gale-1", data_dir := "res://data") -> void:
 	hue = HueRules.new(self, db)
 	map = GameMap.load_file("%s/maps/%s.txt" % [data_dir, map_name])
 	errors.append_array(map.errors)
-	_read_items(data_dir + "/world/items.txt")
+	items = read_items(data_dir + "/world/items.txt")
+	if items.is_empty():
+		errors.append("no items in %s/world/items.txt" % data_dir)
 	_read_mobs(data_dir + "/world/mobs.txt")
 	var f := FileAccess.open(data_dir + "/world/npcs.json", FileAccess.READ)
 	if f:
@@ -66,11 +68,11 @@ func _init(map_name := "gale-1", data_dir := "res://data") -> void:
 	_next_autosave = AUTOSAVE_MS
 
 
-func _read_items(path: String) -> void:
+static func read_items(path: String) -> Dictionary:
+	var items := {}
 	var f := FileAccess.open(path, FileAccess.READ)
 	if f == null:
-		errors.append("cannot read " + path)
-		return
+		return items
 	while not f.eof_reached():
 		var line := f.get_line().strip_edges()
 		if line.is_empty() or line.begins_with("//"):
@@ -81,6 +83,7 @@ func _read_items(path: String) -> void:
 			effects.append(e.strip_edges().split(" ", false))
 		items[int(p[0])] = {"id": int(p[0]), "name": p[1], "kind": p[2], "effects": effects,
 				"description": p[4]}
+	return items
 
 
 func _read_mobs(path: String) -> void:
@@ -175,7 +178,7 @@ func effect(b: Being, name: String) -> void:
 # Players: joining, leaving, saves
 
 static func max_hp_for(level: int) -> int:
-	return 40 + 10 * (level - 1)
+	return 60 + 10 * (level - 1)
 
 
 static func exp_next(level: int) -> int:

@@ -12,7 +12,7 @@ enum Leap { OK, NOT_AT_EDGE, TOO_FAR, NO_LANDING, OBSTRUCTED, WRONG_WAY, TOO_HIG
 
 const CLIFF := -1
 const STAIR := -2
-const BLOCKING := "~TtODuBbr#"
+const BLOCKING := "~TtODuBbr#="
 
 var name := ""
 var title := ""

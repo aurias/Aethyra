@@ -13,7 +13,8 @@ Elevation codes:
 
 Ground codes:
 - '.' grass, ':' sand path, '~' water, 'f' flowers (decoration);
-- obstacles: T/t/O/D trees, u stump, B/b bushes, r rock, '#' forest edge.
+- obstacles: T/t/O/D trees, u stump, B/b bushes, r rock, '#' forest edge,
+  '=' low hedge edge.
 
 The script checks that walkable cells on different levels meet only at stairs,
 because walking never changes level anywhere else.
@@ -25,7 +26,7 @@ W, H = 44, 34
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 OUT = os.path.join(ROOT, "game", "data", "maps", "gale-1.txt")
 
-BLOCKING = set("~TtODuBbr#")
+BLOCKING = set("~TtODuBbr#=")
 
 
 def build():
@@ -52,20 +53,20 @@ def build():
     area(38, 5, W - 2, 10, elev, "2")
     area(37, 5, 37, 10, elev, "C")
 
-    # Pond in the south-east meadow.
-    for y in range(H):
-        for x in range(W):
-            if (x - 34.5) ** 2 / 20 + (y - 25) ** 2 / 9 <= 1:
-                ground[y][x] = "~"
+    # Pond in the south-east meadow (the art's pond border is rectangular
+    # with rounded corners).
+    area(31, 23, 38, 27, ground, "~")
 
     # Sand path from the foot of the stairs to the arrival clearing.
     area(8, 13, 10, 25, ground, ":")
     area(8, 25, 20, 27, ground, ":")
     area(11, 28, 15, 30, ground, ":")
 
-    # The forest edge around the map.
+    # The forest edge around the map ('=' along the south: low bushes only,
+    # so nothing tall hides the meadow's southern edge).
     for x in range(W):
-        ground[0][x] = ground[H - 1][x] = "#"
+        ground[0][x] = "#"
+        ground[H - 1][x] = "="
     for y in range(H):
         ground[y][0] = ground[y][W - 1] = "#"
     # Map edges are never cliff faces: nothing should cross them.
@@ -77,8 +78,8 @@ def build():
     # Trees (trunk cell blocked) and other obstacles.
     for x, y, c in [
         (3, 3, "T"), (6, 7, "t"), (19, 2, "O"), (23, 8, "T"), (31, 8, "t"),
-        (3, 16, "O"), (5, 22, "T"), (2, 30, "t"), (24, 31, "T"), (41, 15, "t"),
-        (40, 31, "O"), (27, 16, "D"), (18, 15, "u"), (22, 19, "B"),
+        (3, 16, "O"), (5, 22, "T"), (2, 29, "t"), (24, 31, "b"), (41, 15, "t"),
+        (40, 30, "O"), (27, 16, "D"), (18, 15, "u"), (22, 19, "B"),
         (4, 27, "B"), (30, 30, "b"), (16, 5, "b"), (34, 9, "B"),
         (40, 3, "T"), (13, 18, "r"), (25, 26, "r"), (36, 19, "r"),
     ]:
