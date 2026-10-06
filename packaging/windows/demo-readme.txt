@@ -21,8 +21,13 @@ CONTROLS
  X             Dash - rush up to 6 tiles in the direction you face
  C             Gust - blow nearby Gust Hoppers away (no damage)
  V             Wind Scythe - cut grass, herbs and flowers in front of you
- Shift+X/C/V   use it anyway after a warning that vessels may burst
+ F             Featherfall - drift down a cliff you face
+ G             Upward Jump - leap up onto a ledge you face
+ T             Spark (Ember) - fire at your target; may set it burning
+ Y             add Spark to your next Gust (fire on the wind)
+ Shift+key     use it anyway after a warning that vessels may burst
  Ctrl          attack the targeted monster       A   target nearest monster
+ Facing a cliff edge shows where you would land, or why you can't.
  Z             pick up                           F3  inventory
  Click an NPC to talk. All keys can be changed under Setup > Keyboard.
 
@@ -40,10 +45,21 @@ CONTROLS
                 Overloading reeds can make the whole stack burst.
 
 WHAT TO DO
- Talk to Windkeeper Ama next to where you arrive. Harvest Meadow Grass
+ Talk to Wren the Ridge-runner at the top of the stairs to learn
+ Featherfall and Upward Jump. Jump onto the high lookout in the east,
+ where Skyreeds give Breeze Reeds, and blow Gust Hoppers off the terrace
+ edge with Gust. Talk to Windkeeper Ama next to where you arrive. Harvest Meadow Grass
  anywhere, Wild Herbs on the terrace up the stairs and Windflowers by the
  pond. Gust Hoppers bite: push them away with Gust and Dash clear. Bring
  Ama three Meadow Herbs and three Windflower Petals for a Gale Tonic.
+
+Spark is Ember, a second hue; until Ember altars exist, a world's
+administrator grants it. To make yourself administrator of a world you
+host: quit the game, open .aethyra\worlds\NAME\save\gm_account.txt in
+your user folder and add the line "2000000 99" (2000000 is the first
+account registered on that world), then host again and type in chat:
+  @huegrant hue ember
+  @huegrant skill 6 1
 
 Worlds are saved in your user folder under .aethyra\worlds. This version
 upgrades worlds from the first demo the first time it opens them (keeping

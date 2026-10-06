@@ -35,3 +35,24 @@ Report: [pass-1-report.md](pass-1-report.md).
   Status window and character creation; sustained actions (Pass 3);
   safe arrival area; skipping the updater warning when hosting.
 - **Blocked:** nothing.
+
+## Pass 2 — Gale traversal and homeland loop, with Ember Spark (6 Oct 2026)
+
+Report: [pass-2-report.md](pass-2-report.md).
+
+- **Tested:** map elevation export and consistency check; terrain rules
+  for walking, Dash, Gust, featherfall, jumps and falls; every leap
+  refusal; ledge Gust with nonlethal falls; no attacks across levels;
+  Wren's teaching; the lookout harvest; mid-traversal disconnect;
+  restart; Spark damage, burning, range and level checks; Gust + Spark
+  costs, effects, cooldown and refusals. Linux and Windows (Wine)
+  servers: 119/119 checks. Real Linux client: previews, animations,
+  Spark and the combination.
+- **Unverified:** Windows client at runtime (CI build only); two GUI
+  clients at once.
+- **Provisional:** traversal reach/costs, fall stagger and 0% fall damage,
+  burn, combination costs, Ember regeneration in the meadow.
+- **Missing:** shadows and cliff art; overlapping floors; Ember altar,
+  homeland and vessels; saved assemblies and sustained effects (Pass 3);
+  a modifier selector beyond the Y key.
+- **Blocked:** nothing.

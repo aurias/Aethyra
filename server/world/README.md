@@ -70,12 +70,18 @@ fixtures; normal players cannot use them:
 | `@hueseed N` | Seed this character's overload rolls |
 | `@hueset energy\|mastery HUE N`, `@hueset points N`, `@hueset prof SKILL N` | Set values |
 | `@huecharge [N]` | Refill (or set per-unit charge of) carried vessels |
+| `@huegrant hue NAME`, `@huegrant skill ID RANK` | Grant hue access (e.g. ember) or a skill rank |
 | `@huedebug` | Show demand, supply and rolls for each action in chat |
+
+`combos.txt` registers live combinations (Gust + Spark). Map elevation
+comes from the client map: `server/tools/tmx2wlk.py MAP.tmx server/world/data`
+writes `data/<map>.elev` beside the walk map and refuses maps whose
+levels meet anywhere but at stairs.
 
 Acceptance tests run real servers against copies of this template:
 
 ```
-python3 server/tools/worldtest.py BUILD_DIR baseline pass1 migration
+python3 server/tools/worldtest.py BUILD_DIR baseline pass1 migration pass2 spark
 ```
 
 `BUILD_DIR` may hold `aethyra-server` or `aethyra-server.exe` (run under
