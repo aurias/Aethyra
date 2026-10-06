@@ -1,0 +1,338 @@
+{
+ "barrel": {
+  "box": [
+   320,
+   16,
+   352,
+   64
+  ],
+  "note": "barrel (after Crush)",
+  "sheet": "object-%20layer_1.png",
+  "size": [
+   32,
+   48
+  ]
+ },
+ "bush": {
+  "box": [
+   192,
+   0,
+   288,
+   96
+  ],
+  "note": "bush",
+  "sheet": "object-%20layer_1.png",
+  "size": [
+   96,
+   96
+  ]
+ },
+ "bush_big": {
+  "box": [
+   64,
+   0,
+   192,
+   128
+  ],
+  "note": "bush cluster",
+  "sheet": "object-%20layer_1.png",
+  "size": [
+   128,
+   128
+  ]
+ },
+ "bush_small": {
+  "box": [
+   160,
+   64,
+   224,
+   128
+  ],
+  "note": "small bush",
+  "sheet": "object-%20layer_1.png",
+  "size": [
+   64,
+   64
+  ]
+ },
+ "cobble": {
+  "box": [
+   32,
+   288,
+   96,
+   352
+  ],
+  "note": "2x2 cobbles",
+  "sheet": "ground_tiles.png",
+  "size": [
+   64,
+   64
+  ]
+ },
+ "flower": {
+  "box": [
+   384,
+   32,
+   416,
+   64
+  ],
+  "note": "flower",
+  "sheet": "object-%20layer_1.png",
+  "size": [
+   32,
+   32
+  ]
+ },
+ "flowers": {
+  "box": [
+   352,
+   32,
+   384,
+   64
+  ],
+  "note": "flowers",
+  "sheet": "object-%20layer_1.png",
+  "size": [
+   32,
+   32
+  ]
+ },
+ "grass": {
+  "box": [
+   32,
+   64,
+   96,
+   128
+  ],
+  "note": "2x2 repeating grass",
+  "sheet": "ground_tiles.png",
+  "size": [
+   64,
+   64
+  ]
+ },
+ "plateau": {
+  "box": [
+   32,
+   0,
+   224,
+   224
+  ],
+  "note": "6x7 raised-ground template",
+  "sheet": "Cliff_tileset_0.png",
+  "size": [
+   192,
+   224
+  ]
+ },
+ "rock": {
+  "box": [
+   288,
+   64,
+   320,
+   96
+  ],
+  "note": "rock",
+  "sheet": "object-%20layer_1.png",
+  "size": [
+   32,
+   32
+  ]
+ },
+ "rock_mossy": {
+  "box": [
+   384,
+   64,
+   416,
+   96
+  ],
+  "note": "mossy rock",
+  "sheet": "object-%20layer_1.png",
+  "size": [
+   32,
+   32
+  ]
+ },
+ "rock_pale": {
+  "box": [
+   288,
+   32,
+   320,
+   64
+  ],
+  "note": "pale rock",
+  "sheet": "object-%20layer_1.png",
+  "size": [
+   32,
+   32
+  ]
+ },
+ "rock_tall": {
+  "box": [
+   320,
+   64,
+   352,
+   96
+  ],
+  "note": "tall rock",
+  "sheet": "object-%20layer_1.png",
+  "size": [
+   32,
+   32
+  ]
+ },
+ "rock_wide": {
+  "box": [
+   352,
+   64,
+   384,
+   96
+  ],
+  "note": "wide rock",
+  "sheet": "object-%20layer_1.png",
+  "size": [
+   32,
+   32
+  ]
+ },
+ "sand": {
+  "box": [
+   32,
+   160,
+   128,
+   256
+  ],
+  "note": "3x3 repeating sand",
+  "sheet": "ground_tiles.png",
+  "size": [
+   96,
+   96
+  ]
+ },
+ "sand_edges": {
+  "box": [
+   192,
+   128,
+   288,
+   224
+  ],
+  "note": "3x3 sand-in-grass border, centre empty",
+  "sheet": "ground_tiles.png",
+  "size": [
+   96,
+   96
+  ]
+ },
+ "stairs": {
+  "box": [
+   320,
+   128,
+   416,
+   224
+  ],
+  "note": "3x3 stairs cut into a south face",
+  "sheet": "Cliff_tileset_0.png",
+  "size": [
+   96,
+   96
+  ]
+ },
+ "stump": {
+  "box": [
+   410,
+   24,
+   500,
+   192
+  ],
+  "note": "stump",
+  "sheet": "treesv6_0_0.psd",
+  "size": [
+   90,
+   168
+  ]
+ },
+ "tree_bright": {
+  "box": [
+   128,
+   24,
+   254,
+   192
+  ],
+  "note": "bright tree",
+  "sheet": "treesv6_0_0.psd",
+  "size": [
+   126,
+   168
+  ]
+ },
+ "tree_dead": {
+  "box": [
+   500,
+   24,
+   672,
+   192
+  ],
+  "note": "dead tree",
+  "sheet": "treesv6_0_0.psd",
+  "size": [
+   172,
+   168
+  ]
+ },
+ "tree_old": {
+  "box": [
+   254,
+   24,
+   410,
+   192
+  ],
+  "note": "old tree",
+  "sheet": "treesv6_0_0.psd",
+  "size": [
+   156,
+   168
+  ]
+ },
+ "tree_round": {
+  "box": [
+   0,
+   24,
+   128,
+   192
+  ],
+  "note": "round tree",
+  "sheet": "treesv6_0_0.psd",
+  "size": [
+   128,
+   168
+  ]
+ },
+ "water": {
+  "box": [
+   480,
+   320,
+   512,
+   352
+  ],
+  "note": "open water",
+  "sheet": "ground_tiles.png",
+  "size": [
+   32,
+   32
+  ]
+ },
+ "water_edges": {
+  "box": [
+   384,
+   256,
+   480,
+   352
+  ],
+  "note": "3x3 pond border, centre empty",
+  "sheet": "ground_tiles.png",
+  "size": [
+   96,
+   96
+  ]
+ }
+}
