@@ -171,7 +171,8 @@ class LocalPlayer : public Player
          */
         virtual void setDestination(const Uint16 &x, const Uint16 &y);
 
-        virtual void slideTo(const Uint16 &x, const Uint16 &y);
+        virtual void slideTo(const Uint16 &x, const Uint16 &y,
+                             const int kind = SLIDE_DASH);
 
 
         /**

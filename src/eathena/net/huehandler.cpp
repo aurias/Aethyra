@@ -55,6 +55,7 @@ void HueHandler::handleMessage(MessageIn *msg)
             const int count = (msg->getLength() - 4) / 136;
             st.skills.clear();
             st.vessels.clear();
+            st.combos.clear();
             for (int i = 0; i < count; i++)
             {
                 const int kind = msg->readInt8();
@@ -84,6 +85,14 @@ void HueHandler::handleMessage(MessageIn *msg)
                     if ((int) ranks.size() < rank)
                         ranks.resize(rank);
                     ranks[rank - 1] = r;
+                }
+                else if (kind == 2)
+                {
+                    Hue::Combo c;
+                    c.base = id; c.modifier = p[0]; c.effectPct = p[1];
+                    c.energyPct = p[2]; c.currentPct = p[3];
+                    c.description = description;
+                    st.combos.push_back(c);
                 }
                 else if (kind == 1)
                 {
@@ -175,7 +184,11 @@ void HueHandler::handleMessage(MessageIn *msg)
             r.personalSpent = msg->readInt16();
             r.vesselSpent = msg->readInt16();
             r.detail = msg->readInt16();
-            const int count = (msg->getLength() - 24) / 11;
+            r.modifier = msg->readInt16();
+            r.modifierPersonal = msg->readInt16();
+            r.modifierVessel = msg->readInt16();
+            r.modifierDetail = msg->readInt16();
+            const int count = (msg->getLength() - 32) / 11;
             for (int i = 0; i < count; i++)
             {
                 Hue::VesselOutcome v;

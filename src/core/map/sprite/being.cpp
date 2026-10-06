@@ -84,6 +84,8 @@ Being::Being(const int id, const int job, Map *map):
     mHairStyle(1), mHairColor(0),
     mGender(GENDER_UNSPECIFIED),
     mPx(0), mPy(0),
+    mSlideDx(0), mSlideDy(0), mSlideStart(0), mSlideTime(0),
+    mSlideKind(SLIDE_DASH),
     mSprites(VECTOREND_SPRITE, NULL),
     mSpriteIDs(VECTOREND_SPRITE, 0),
     mSpriteColors(VECTOREND_SPRITE, ""),
@@ -123,9 +125,25 @@ void Being::setDestination(const Uint16 &destX, const Uint16 &destY)
         setPath(mMap->findPath(mX, mY, destX, destY));
 }
 
-void Being::slideTo(const Uint16 &x, const Uint16 &y)
+void Being::slideTo(const Uint16 &x, const Uint16 &y, const int kind)
 {
     mPath.clear();
+    const int tw = mMap ? mMap->getTileWidth() : 32;
+    const int th = mMap ? mMap->getTileHeight() : 32;
+    // Start from where it is drawn now, so a slide mid-walk does not jump.
+    mSlideDx = mX * tw + getXOffset() - x * tw;
+    mSlideDy = mY * th + getYOffset() - y * th;
+    mSlideStart = tick_time;
+    mSlideKind = kind;
+    switch (kind)
+    {
+        case SLIDE_DASH: mSlideTime = 160; break;
+        case SLIDE_KNOCKBACK: mSlideTime = 220; break;
+        case SLIDE_FEATHERFALL: mSlideTime = 700; break;
+        case SLIDE_JUMP: mSlideTime = 450; break;
+        case SLIDE_FALL: mSlideTime = 380; break;
+        default: mSlideTime = 200; break;
+    }
     mX = x;
     mY = y;
     if (mAction == WALK)
@@ -592,8 +610,28 @@ void Being::setWalkSpeed(const Uint16 &speed)
     mWalkSpeed = speed > 0 ? speed <= 1000 ? speed : 1000 : 1;
 }
 
+int Being::slideProgress() const
+{
+    if (mSlideTime <= 0)
+        return -1;
+    const int elapsed = get_elapsed_time(mSlideStart);
+    if (elapsed >= mSlideTime || elapsed < 0)
+        return -1;
+    return elapsed * 1000 / mSlideTime;
+}
+
 const int Being::getXOffset() const
 {
+    const int p = slideProgress();
+    if (p >= 0)
+    {
+        // Knockbacks and dashes ease out; the rest move evenly sideways.
+        const int remaining = (mSlideKind == SLIDE_KNOCKBACK ||
+                               mSlideKind == SLIDE_DASH)
+            ? (1000 - p) * (1000 - p) / 1000 : 1000 - p;
+        return mSlideDx * remaining / 1000;
+    }
+
     // Check whether we're walking in the requested direction
     if (mAction != WALK || !(mDirection & (LEFT | RIGHT)))
         return 0;
@@ -615,6 +653,31 @@ const int Being::getXOffset() const
 
 const int Being::getYOffset() const
 {
+    const int p = slideProgress();
+    if (p >= 0)
+    {
+        // sin(pi * p) as a cheap parabola: 4 p (1 - p).
+        const int arc = 4 * p * (1000 - p) / 1000;    // 0..1000
+        switch (mSlideKind)
+        {
+            case SLIDE_JUMP:
+                // Up over the lip of the ledge.
+                return mSlideDy * (1000 - p) / 1000 - 40 * arc / 1000;
+            case SLIDE_FEATHERFALL:
+                // A small lift, then a slow drift down.
+                return mSlideDy * (1000 - p) * (1000 - p) / 1000000
+                    - 14 * arc / 1000;
+            case SLIDE_FALL:
+                // Accelerating drop.
+                return mSlideDy * (1000000 - p * p) / 1000000;
+            case SLIDE_KNOCKBACK:
+            case SLIDE_DASH:
+                return mSlideDy * (1000 - p) * (1000 - p) / 1000000;
+            default:
+                return mSlideDy * (1000 - p) / 1000;
+        }
+    }
+
     // Check whether we're walking in the requested direction
     if (mAction != WALK || !(mDirection & (UP | DOWN)))
         return 0;

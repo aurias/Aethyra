@@ -413,14 +413,14 @@ void LocalPlayer::setDestination(const Uint16 &x, const Uint16 &y)
     Being::setDestination(x, y);
 }
 
-void LocalPlayer::slideTo(const Uint16 &x, const Uint16 &y)
+void LocalPlayer::slideTo(const Uint16 &x, const Uint16 &y, const int kind)
 {
     // Forget the walk the server just cut short, so it is not resent.
     mDestX = x;
     mDestY = y;
     mPickUpTarget = NULL;
     mGoingToTarget = false;
-    Being::slideTo(x, y);
+    Being::slideTo(x, y, kind);
 }
 
 void LocalPlayer::setWalkingDir(const int dir)

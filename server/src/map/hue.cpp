@@ -443,7 +443,8 @@ bool occupied(Borrowed<map_local> m, int x, int y, dumb_ptr<block_list> self)
                     return;
                 if (dumb_ptr<mob_data> md = bl->is_mob())
                 {
-                    if (md->hp > 0)
+                    // One can land among plants.
+                    if (md->hp > 0 && !is_vegetation(md))
                         found = true;
                 }
                 else if (bl->bl_type == BL::PC || bl->bl_type == BL::NPC)

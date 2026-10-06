@@ -469,6 +469,25 @@ bool InputManager::handleKeyboardInput(const SDL_Event &event)
                                 (SDL_GetModState() & KMOD_SHIFT) != 0);
                         used = true;
                         break;
+                    case KeyboardConfig::KEY_SKILL_FEATHERFALL:
+                        Hue::useSkill(Hue::SKILL_FEATHERFALL,
+                                (SDL_GetModState() & KMOD_SHIFT) != 0);
+                        used = true;
+                        break;
+                    case KeyboardConfig::KEY_SKILL_JUMP:
+                        Hue::useSkill(Hue::SKILL_JUMP,
+                                (SDL_GetModState() & KMOD_SHIFT) != 0);
+                        used = true;
+                        break;
+                    case KeyboardConfig::KEY_SKILL_SPARK:
+                        Hue::useSkill(Hue::SKILL_SPARK,
+                                (SDL_GetModState() & KMOD_SHIFT) != 0);
+                        used = true;
+                        break;
+                    case KeyboardConfig::KEY_SKILL_PRIME:
+                        Hue::togglePrimed(Hue::SKILL_SPARK);
+                        used = true;
+                        break;
                     // Player sit action
                     case KeyboardConfig::KEY_SIT:
                         player_node->toggleSit();

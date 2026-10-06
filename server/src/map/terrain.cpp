@@ -173,7 +173,7 @@ Leap terrain_leap(Borrowed<map_local> m, int x, int y, int dx, int dy,
             break;
         }
         leap.span++;
-        if (leap.span > max_span)
+        if (leap.span > 16)
         {
             leap.result = LeapResult::TOO_FAR;
             return leap;
@@ -185,15 +185,22 @@ Leap terrain_leap(Borrowed<map_local> m, int x, int y, int dx, int dy,
         return leap;    // NOT_AT_EDGE
     leap.x = cx;
     leap.y = cy;
-    if (!walkable(m, cx, cy) || terrain_stair(m, cx, cy))
-    {
-        leap.result = LeapResult::NO_LANDING;
-        return leap;
-    }
+    bool landable = walkable(m, cx, cy) && !terrain_stair(m, cx, cy);
     leap.levels = terrain_level(m, cx, cy) - from;
-    if (leap.levels * dir <= 0)
+    // A ledge the other way is the other move's, however wide it is.
+    if (landable && leap.levels * dir <= 0)
     {
         leap.result = LeapResult::WRONG_WAY;
+        return leap;
+    }
+    if (leap.span > max_span)
+    {
+        leap.result = LeapResult::TOO_FAR;
+        return leap;
+    }
+    if (!landable)
+    {
+        leap.result = LeapResult::NO_LANDING;
         return leap;
     }
     if (std::abs(leap.levels) > max_levels)

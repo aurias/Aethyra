@@ -21,6 +21,7 @@
  */
 
 #include <guichan/actionevent.hpp>
+#include <guichan/font.hpp>
 
 #include "minimap.h"
 #include "popupmenu.h"
@@ -31,6 +32,9 @@
 
 #include "../net/messageout.h"
 #include "../net/protocol.h"
+
+#include "../huestate.h"
+#include "../terrain.h"
 
 #include "../../bindings/guichan/graphics.h"
 #include "../../bindings/guichan/gui.h"
@@ -237,6 +241,7 @@ void Viewport::draw(gcn::Graphics *graphics)
     if (mCurrentMap)
     {
         mCurrentMap->draw(g, (int) mPixelViewX, (int) mPixelViewY);
+        drawLeapPreview(g);
 
         // Find a path from the player to the mouse, and draw it. This is for
         // debug purposes.
@@ -511,4 +516,87 @@ bool Viewport::changeMap(const std::string &path)
     MessageOut outMsg(CMSG_MAP_LOADED);
 
     return true;
+}
+
+void Viewport::drawLeapPreview(Graphics *g)
+{
+    const int dirBits = player_node->getDirection();
+    const int dx = (dirBits & Being::RIGHT) ? 1 : (dirBits & Being::LEFT) ? -1 : 0;
+    const int dy = (dirBits & Being::DOWN) ? 1 : (dirBits & Being::UP) ? -1 : 0;
+    const int tw = mCurrentMap->getTileWidth();
+    const int th = mCurrentMap->getTileHeight();
+
+    struct { int skill, way; const char *key; } moves[] = {
+        { Hue::SKILL_FEATHERFALL, -1, "F" },
+        { Hue::SKILL_JUMP, 1, "G" },
+    };
+    for (int i = 0; i < 2; i++)
+    {
+        const int rank = Hue::learnedRank(moves[i].skill);
+        const Hue::SkillRank *def = Hue::rank(moves[i].skill, rank);
+        if (!def)
+            continue;
+        const Terrain::Leap leap = Terrain::leap(mCurrentMap,
+                player_node->mX, player_node->mY, dx, dy, moves[i].way,
+                def->p1, def->p2);
+        // Nothing to say when there is no edge, or it is the other move's.
+        if (leap.result == Terrain::NOT_AT_EDGE ||
+            leap.result == Terrain::WRONG_WAY)
+            continue;
+
+        int x = leap.x, y = leap.y;
+        std::string text;
+        bool ok = false;
+        switch (leap.result)
+        {
+            case Terrain::OK:
+            {
+                // Anyone standing there blocks the landing, except plants
+                // (monster ids 98-197, server 1100-1199).
+                ok = true;
+                const Beings &all = beingManager->getAll();
+                for (Beings::const_iterator b = all.begin(); b != all.end(); ++b)
+                {
+                    Being *other = *b;
+                    if (other == player_node || other->mX != x ||
+                        other->mY != y || other->mAction == Being::DEAD)
+                        continue;
+                    if (other->getType() == Being::MONSTER &&
+                        other->mJob >= 98 && other->mJob <= 197)
+                        continue;
+                    ok = false;
+                }
+                text = ok ? strprintf("%s: %s", moves[i].key, def->name.c_str())
+                          : strprintf(_("%s: landing occupied"), def->name.c_str());
+                break;
+            }
+            case Terrain::TOO_HIGH:
+                text = strprintf(_("%s: %d levels - too high"),
+                                 def->name.c_str(), std::abs(leap.levels));
+                break;
+            case Terrain::TOO_FAR:
+                x = player_node->mX + dx;
+                y = player_node->mY + dy;
+                text = strprintf(_("%s: cliff too wide"), def->name.c_str());
+                break;
+            case Terrain::OBSTRUCTED:
+                x = player_node->mX + dx;
+                y = player_node->mY + dy;
+                text = strprintf(_("%s: corner in the way"), def->name.c_str());
+                break;
+            default:
+                text = strprintf(_("%s: nowhere to land"), def->name.c_str());
+                break;
+        }
+
+        const int px = x * tw - (int) mPixelViewX;
+        const int py = y * th - (int) mPixelViewY;
+        g->setColor(ok ? gcn::Color(80, 220, 140, 200)
+                       : gcn::Color(230, 80, 60, 200));
+        g->drawRectangle(gcn::Rectangle(px + 2, py + 2, tw - 4, th - 4));
+        g->drawRectangle(gcn::Rectangle(px + 3, py + 3, tw - 6, th - 6));
+        g->setFont(getFont());
+        g->drawText(text, px + tw / 2, py - getFont()->getHeight(),
+                    gcn::Graphics::CENTER);
+    }
 }

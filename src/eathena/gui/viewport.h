@@ -143,6 +143,13 @@ class Viewport : public Container, public gcn::MouseListener
 
     private:
         /**
+         * Aethyra: where Featherfall or Upward Jump would land from the
+         * cliff edge the player faces, or why it cannot (an estimate; the
+         * server decides).
+         */
+        void drawLeapPreview(Graphics *graphics);
+
+        /**
          * Sets the map displayed by the viewport.
          */
         void setMap(Map *map);

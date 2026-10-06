@@ -261,6 +261,8 @@ aethyra_SOURCES = \
 	      eathena/statemanager.h \
 	      eathena/huestate.cpp \
 	      eathena/huestate.h \
+	      eathena/terrain.cpp \
+	      eathena/terrain.h \
 	      eathena/worldhost.cpp \
 	      eathena/worldhost.h \
 	      eathena/db/colordb.cpp \

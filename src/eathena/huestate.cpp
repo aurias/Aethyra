@@ -99,6 +99,15 @@ const Hue::Vessel *Hue::vessel(int item)
     return it == theState.vessels.end() ? NULL : &it->second;
 }
 
+const Hue::Combo *Hue::combo(int base, int modifier)
+{
+    for (size_t i = 0; i < theState.combos.size(); i++)
+        if (theState.combos[i].base == base &&
+            theState.combos[i].modifier == modifier)
+            return &theState.combos[i];
+    return NULL;
+}
+
 const Hue::Lot *Hue::lotAt(int index)
 {
     std::map<int, Lot>::const_iterator it = theState.lots.find(index);
@@ -135,7 +144,23 @@ std::string Hue::describe(const Result &r)
         case FAILED:
         {
             std::string text;
-            if (r.outcome == FAILED)
+            if (r.modifier)
+            {
+                const SkillRank *mod = rank(r.modifier,
+                                            std::max(learnedRank(r.modifier), 1));
+                const std::string modName = skillName(r.modifier);
+                text = strprintf(_("%s + %s %s: %d %s and %d %s energy."),
+                                 skill.c_str(), modName.c_str(),
+                                 r.outcome == FAILED ? _("fizzled")
+                                                     : _("together"),
+                                 r.personalSpent + r.vesselSpent, hue,
+                                 r.modifierPersonal + r.modifierVessel,
+                                 name(mod ? mod->hue : GALE));
+                if (r.outcome == SUCCEEDED && r.modifierDetail)
+                    text += " " + strprintf(_("%d set alight."),
+                                            r.modifierDetail);
+            }
+            else if (r.outcome == FAILED)
                 text = strprintf(_("%s fizzled under the overload; %d %s "
                                    "energy was spent."), skill.c_str(),
                                  r.personalSpent + r.vesselSpent, hue);
@@ -222,6 +247,35 @@ std::string Hue::describe(const Result &r)
         case SUPPLY_FULL:
             return strprintf(_("You can draw on at most %d vessel stacks."),
                              r.detail);
+        case NOT_AT_EDGE:
+            return strprintf(_("%s: face a cliff edge first."), skill.c_str());
+        case TOO_FAR:
+            return strprintf(_("%s: that cliff is %d cells across, too wide "
+                               "for you yet."), skill.c_str(), r.detail);
+        case NO_LANDING:
+            return strprintf(_("%s: there is nowhere to land beyond that "
+                               "cliff."), skill.c_str());
+        case OBSTRUCTED:
+            return strprintf(_("%s: something is in the way at the corner."),
+                             skill.c_str());
+        case WRONG_WAY:
+            return r.detail == 1
+                ? strprintf(_("%s: that ledge is above you - jump instead."),
+                            skill.c_str())
+                : strprintf(_("%s: that ledge is below you - featherfall "
+                              "instead."), skill.c_str());
+        case TOO_HIGH:
+            return strprintf(_("%s: that is %d levels, more than you can "
+                               "manage yet."), skill.c_str(), r.detail);
+        case LANDING_OCCUPIED:
+            return strprintf(_("%s: someone is standing where you would "
+                               "land."), skill.c_str());
+        case NO_TARGET:
+            return strprintf(_("%s: no enemy in reach (%d tiles, on your "
+                               "level)."), skill.c_str(), r.detail);
+        case INCOMPATIBLE:
+            return strprintf(_("%s cannot be combined with %s."),
+                             skillName(r.detail).c_str(), skill.c_str());
         default:
             return strprintf(_("The server refused that (reason %d)."),
                              r.reason);
@@ -232,11 +286,33 @@ void Hue::useSkill(int id, bool acceptRisk)
 {
     if (!player_node)
         return;
+    // A primed modifier rides along when it combines with this skill.
+    int modifier = 0;
+    if (theState.primed && combo(id, theState.primed))
+    {
+        modifier = theState.primed;
+        theState.primed = 0;
+        touch();
+    }
+    // Targeted skills aim at the selected monster, if any.
+    int target = 0;
+    Being *being = player_node->getTarget();
+    if (being && being->getType() == Being::MONSTER)
+        target = being->getId();
+
     MessageOut outMsg(CMSG_AETHYRA_HUE_ACTION);
     outMsg.writeInt16(id);
     outMsg.writeInt8(player_node->getDirection());
     outMsg.writeInt8(acceptRisk ? 1 : 0);
     outMsg.writeInt32(++nextRequest);
+    outMsg.writeInt32(target);
+    outMsg.writeInt16(modifier);
+}
+
+void Hue::togglePrimed(int modifier)
+{
+    theState.primed = theState.primed == modifier ? 0 : modifier;
+    touch();
 }
 
 void Hue::learn(int id)

@@ -37,6 +37,7 @@ namespace Hue
 
     /** Skill actions, as in the server's HueActionKind. */
     enum { ACTION_DASH = 1, ACTION_GUST = 2, ACTION_SCYTHE = 3,
+           ACTION_FEATHERFALL = 4, ACTION_JUMP = 5, ACTION_SPARK = 6,
            ACTION_FLOW = 10 };
 
     /** Server reason codes (server/src/map/hue.hpp, HueReason). */
@@ -46,7 +47,9 @@ namespace Hue
         ALLOWANCE, CEILING, BLOCKED, NO_ENERGY, CURRENT_LIMITED,
         OVERLOAD_RISK, OVERLOAD_LIMIT, PERMANENT, NO_POINTS, NEEDS_LEVEL,
         NEEDS_MASTERY, NEEDS_PROFICIENCY, MAX_RANK, NOT_A_VESSEL,
-        SUPPLY_FULL, OVERLOAD_FAILED
+        SUPPLY_FULL, OVERLOAD_FAILED, NOT_AT_EDGE, TOO_FAR, NO_LANDING,
+        OBSTRUCTED, WRONG_WAY, TOO_HIGH, LANDING_OCCUPIED, NO_TARGET,
+        INCOMPATIBLE
     };
 
     enum Outcome { REJECTED, SUCCEEDED, FAILED, LEARNED, SUPPLY };
@@ -66,6 +69,13 @@ namespace Hue
         int item, hue, grade, capacity, safeCurrent, maxCondition,
             initialCharge;
         std::string label;
+    };
+
+    /** A legal live combination: base modified by modifier. */
+    struct Combo
+    {
+        int base, modifier, effectPct, energyPct, currentPct;
+        std::string description;
     };
 
     struct Record
@@ -102,6 +112,7 @@ namespace Hue
         unsigned int request;
         int skill, outcome, reason;
         int energy, current, channel, personalSpent, vesselSpent, detail;
+        int modifier, modifierPersonal, modifierVessel, modifierDetail;
         std::vector<VesselOutcome> vessels;
     };
 
@@ -111,6 +122,8 @@ namespace Hue
         Record records[COUNT];
         std::map<int, std::vector<SkillRank> > skills;
         std::map<int, Vessel> vessels;
+        std::vector<Combo> combos;
+        int primed;                     /**< modifier for the next action */
         std::map<int, Learned> learned;
         std::map<int, Lot> lots;        /**< by inventory index */
         unsigned int revision;          /**< changes whenever state does */
@@ -125,6 +138,7 @@ namespace Hue
     const SkillRank *rank(int id, int rank);
     int learnedRank(int id);
     const Vessel *vessel(int item);
+    const Combo *combo(int base, int modifier);
     /** The lot of the item at an inventory index, if it is a vessel. */
     const Lot *lotAt(int index);
 
@@ -135,12 +149,17 @@ namespace Hue
     std::string describe(const Result &result);
 
     // Requests. The server answers each with a result.
+    /** Uses a skill on the selected target; a primed modifier is added
+     *  when it combines with this skill. */
     void useSkill(int id, bool acceptRisk);
+    /** Prime (or unprime) a modifier for the next compatible action. */
+    void togglePrimed(int modifier);
     void learn(int id);
     void selectSupply(int index, bool on);
 
     /** Gale skill ids bound to the X/C/V keys. */
-    enum { SKILL_DASH = 1, SKILL_GUST = 2, SKILL_WIND_SCYTHE = 3 };
+    enum { SKILL_DASH = 1, SKILL_GUST = 2, SKILL_WIND_SCYTHE = 3,
+           SKILL_FEATHERFALL = 4, SKILL_JUMP = 5, SKILL_SPARK = 6 };
 }
 
 #endif

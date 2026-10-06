@@ -66,6 +66,17 @@ namespace
             case Hue::ACTION_SCYTHE:
                 return strprintf(_("harvests vegetation within %d tiles"),
                                  r.p1);
+            case Hue::ACTION_FEATHERFALL:
+                return strprintf(_("drift down up to %d level(s) over a "
+                                   "cliff up to %d cells wide (key F)"),
+                                 r.p1, r.p2);
+            case Hue::ACTION_JUMP:
+                return strprintf(_("leap up %d level(s) over a cliff up to "
+                                   "%d cells wide (key G)"), r.p1, r.p2);
+            case Hue::ACTION_SPARK:
+                return strprintf(_("%d fire damage to your target within %d "
+                                   "tiles; %d%% chance to burn (key T)"),
+                                 r.p2, r.p1, r.p3);
             case Hue::ACTION_FLOW:
                 return strprintf(_("+%d%% safe current from selected "
                                    "vessels"), r.p1);
@@ -364,6 +375,26 @@ void HueSkillWindow::refresh()
     else
         mText->addRow(strprintf(_("Not learned. %s"),
                                 first->description.c_str()));
+
+    // Live combinations with this skill.
+    for (size_t i = 0; i < st.combos.size(); i++)
+    {
+        const Hue::Combo &c = st.combos[i];
+        if (c.base != id && c.modifier != id)
+            continue;
+        const Hue::SkillRank *b = Hue::rank(c.base, 1);
+        const Hue::SkillRank *m = Hue::rank(c.modifier, 1);
+        if (!b || !m)
+            continue;
+        mText->addRow("");
+        mText->addRow(strprintf(_("Combines: %s + %s. %s The %s part costs "
+                                  "%d%% of its energy, paid in %s. Press Y "
+                                  "to add Spark, then use %s."),
+                                b->name.c_str(), m->name.c_str(),
+                                c.description.c_str(), m->name.c_str(),
+                                c.energyPct, Hue::name(m->hue),
+                                b->name.c_str()));
+    }
 
     if (next)
     {

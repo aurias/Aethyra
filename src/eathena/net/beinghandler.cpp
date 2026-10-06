@@ -513,7 +513,8 @@ void BeingHandler::handleMessage(MessageIn *msg)
             {
                 const Uint16 x = msg->readInt16();
                 const Uint16 y = msg->readInt16();
-                dstBeing->slideTo(x, y);
+                const int kind = msg->readInt8();
+                dstBeing->slideTo(x, y, kind);
             }
             break;
 

@@ -130,6 +130,14 @@ void MiniStatusWindow::update()
         : std::string();
     if (stacks)
         hue += strprintf(_(" | supply %d in %d stack(s)"), supply, stacks);
+    const Hue::Record &ember = Hue::state().records[Hue::EMBER];
+    if (ember.access)
+        hue += strprintf(_(" | Ember %d/%d"), ember.energy, ember.capacity);
+    if (Hue::state().primed)
+    {
+        const Hue::SkillRank *mod = Hue::rank(Hue::state().primed, 1);
+        hue += strprintf(_(" | next: + %s"), mod ? mod->name.c_str() : "?");
+    }
     if (mHueLabel->getCaption() != hue)
     {
         mHueLabel->setCaption(hue);

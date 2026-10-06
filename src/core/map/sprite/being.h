@@ -184,7 +184,16 @@ class Being : public Sprite
          * Moves the being instantly to the given tile (a dash or a
          * knockback), dropping any walk in progress.
          */
-        virtual void slideTo(const Uint16 &x, const Uint16 &y);
+        /** Kinds of instant server moves (SMSG_AETHYRA_BEING_SLIDE). */
+        enum SlideKind { SLIDE_DASH, SLIDE_KNOCKBACK, SLIDE_FEATHERFALL,
+                         SLIDE_JUMP, SLIDE_FALL };
+
+        /**
+         * Moves the being to a tile the server already put it on, animating
+         * the way there (the position itself changes at once).
+         */
+        virtual void slideTo(const Uint16 &x, const Uint16 &y,
+                             const int kind = SLIDE_DASH);
 
         /**
          * Puts a "speech balloon" above this being for the specified amount
@@ -441,6 +450,13 @@ class Being : public Sprite
         Uint16 mHairStyle, mHairColor;
         Gender mGender;
         int mPx, mPy;                   /**< Pixel coordinates */
+
+        // Slide animation: offset from the new tile at the start, when it
+        // began (tick_time), how long it lasts (ms) and its kind.
+        int mSlideDx, mSlideDy, mSlideStart, mSlideTime, mSlideKind;
+
+        /** Progress of the slide in 0..1000, or -1 when not sliding. */
+        int slideProgress() const;
 
         const gcn::Color* mNameColor;
 
