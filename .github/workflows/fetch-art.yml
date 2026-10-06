@@ -26,8 +26,11 @@ jobs:
           mkdir -p "$dir"
           page=https://opengameart.org/content/whispers-of-avalon-grassland-tileset
           curl -fsSL "$page" -o "$dir/opengameart-page.html"
-          grep -o 'https://opengameart.org/sites/default/files/[^"]*' \
-            "$dir/opengameart-page.html" | sort -u > "$dir/files.txt"
+          # The page's file attachments, not previews, avatars or badges.
+          grep -oE "https://opengameart.org/sites/default/files/[^\"'?<> ]+" \
+            "$dir/opengameart-page.html" \
+            | grep -vE '/(styles|license_images|pictures)/' \
+            | sort -u > "$dir/files.txt"
           cat "$dir/files.txt"
           while read -r url; do
             curl -fsSL "$url" -o "$dir/$(basename "$url")"
