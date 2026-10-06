@@ -40,7 +40,7 @@ Package: CI run 15 (`Aethyra-windows` artifact of `32d4437`) built green.
 ## Evidence
 
 Automated (`server/tools/worldtest.py`, real servers and protocol
-clients): 119 checks - baseline 24, pass1 46, migration 10, pass2 24,
+clients): 119 checks - baseline 25, pass1 44, migration 10, pass2 25,
 spark 15 - all passing on the Linux server and on the Windows server
 under Wine.
 
