@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<effect>
+ <particle position-z="20" lifetime="6">
+  <emitter>
+   <property name="image" value="graphics/particles/ember.png"/>
+   <property name="output" value="16"/>
+   <property name="horizontal-angle" min="0" max="360"/>
+   <property name="vertical-angle" min="10" max="60"/>
+   <property name="power" min="1.5" max="3"/>
+   <property name="gravity" value="0"/>
+   <property name="lifetime" min="15" max="35"/>
+   <property name="fade-out" value="20"/>
+  </emitter>
+ </particle>
+</effect>

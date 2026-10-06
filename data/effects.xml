@@ -4,4 +4,8 @@
  <effect id="900" particle="graphics/particles/gale-dash.particle.xml"/>
  <effect id="901" particle="graphics/particles/gale-gust.particle.xml"/>
  <effect id="902" particle="graphics/particles/gale-scythe.particle.xml"/>
+ <effect id="903" particle="graphics/particles/ember-spark.particle.xml"/>
+ <effect id="904" particle="graphics/particles/ember-burn.particle.xml"/>
+ <effect id="906" particle="graphics/particles/gale-featherfall.particle.xml"/>
+ <effect id="907" particle="graphics/particles/gale-jump.particle.xml"/>
 </being-effects>

@@ -1459,6 +1459,31 @@ ATCE atcommand_huecharge(Session *, dumb_ptr<map_session_data> sd,
 }
 
 static
+ATCE atcommand_huegrant(Session *s, dumb_ptr<map_session_data> sd,
+        ZString message)
+{
+    XString what, name;
+    int skill, rank;
+    Hue hue;
+    if (extract(message.strip(), record<' '>(&what, &name)) && what == "hue"_s
+            && hue_from_name(name, &hue))
+    {
+        clif_displaymessage(s, hue_grant_access(sd, hue)
+                ? "Hue access granted (developer fixture)."_s
+                : "You already have that hue."_s);
+        return ATCE::OKAY;
+    }
+    if (extract(message.strip(), record<' '>(&what, &skill, &rank)) && what == "skill"_s)
+    {
+        clif_displaymessage(s, hue_grant_skill(sd, skill, rank)
+                ? "Skill granted (developer fixture)."_s
+                : "Unknown skill/rank, or already known at that rank."_s);
+        return ATCE::OKAY;
+    }
+    return ATCE::USAGE;
+}
+
+static
 ATCE atcommand_huedebug(Session *, dumb_ptr<map_session_data> sd, ZString)
 {
     hue_toggle_debug(sd);
@@ -5856,6 +5881,9 @@ Map<XString, AtCommandInfo> atcommand_info =
     {"huecharge"_s, {"[energy per unit]"_s,
         60, atcommand_huecharge,
         "Refill (or set) the charge of every vessel you carry"_s}},
+    {"huegrant"_s, {"hue <name> | skill <id> <rank>"_s,
+        60, atcommand_huegrant,
+        "Grant hue access or a skill rank (developer fixture)"_s}},
     {"huedebug"_s, {""_s,
         60, atcommand_huedebug,
         "Toggle hue action diagnostics in chat"_s}},

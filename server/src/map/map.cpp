@@ -70,6 +70,7 @@
 #include "globals.hpp"
 #include "grfio.hpp"
 #include "hue.hpp"
+#include "terrain.hpp"
 #include "itemdb.hpp"
 #include "map_conf.hpp"
 #include "mob.hpp"
@@ -1290,7 +1291,8 @@ bool map_readmap(map_local *m, size_t num, MapName fn)
     size_t bys = (ys + BLOCK_SIZE - 1) / BLOCK_SIZE;
     m->blocks.reset(bxs, bys);
 
-    return true;
+    // Aethyra: gameplay elevation (data/<map>.elev), if the map has one.
+    return terrain_load(m);
 }
 
 /*==========================================

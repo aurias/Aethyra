@@ -44,6 +44,7 @@ namespace
 std::map<int, std::vector<HueSkillRank>> skills;
 std::map<int, HueVesselDef> vessels;
 std::map<int, HueGrant> origins;
+std::vector<HueCombo> combos;
 std::vector<HueGrant> profiles;
 struct Region { RString map; Hue hue; int pct; };
 std::vector<Region> regions;
@@ -59,6 +60,9 @@ bool kind_from_name(XString name, HueActionKind *out)
     if (name == "dash"_s) *out = HueActionKind::DASH;
     else if (name == "gust"_s) *out = HueActionKind::GUST;
     else if (name == "scythe"_s) *out = HueActionKind::SCYTHE;
+    else if (name == "featherfall"_s) *out = HueActionKind::FEATHERFALL;
+    else if (name == "jump"_s) *out = HueActionKind::JUMP;
+    else if (name == "spark"_s) *out = HueActionKind::SPARK;
     else if (name == "flow"_s) *out = HueActionKind::FLOW;
     else return false;
     return true;
@@ -148,6 +152,13 @@ bool read_balance(ZString dir)
             {"success_slope_pct"_s, &b.success_slope_pct},
             {"success_mastery_pct"_s, &b.success_mastery_pct},
             {"overload_wear"_s, &b.overload_wear},
+            {"ledge_fall_max_levels"_s, &b.ledge_fall_max_levels},
+            {"ledge_fall_max_span"_s, &b.ledge_fall_max_span},
+            {"fall_stagger_ms"_s, &b.fall_stagger_ms},
+            {"fall_damage_pct"_s, &b.fall_damage_pct},
+            {"burn_tick_ms"_s, &b.burn_tick_ms},
+            {"burn_ticks"_s, &b.burn_ticks},
+            {"burn_tick_damage"_s, &b.burn_tick_damage},
         };
         for (auto& f : ints)
             if (key == f.name)
@@ -263,6 +274,39 @@ bool read_origins(ZString dir)
     return ok && hue_origin(1);
 }
 
+bool read_combos(ZString dir)
+{
+    combos.clear();
+    return each_line(dir, "combos.txt"_s, [](XString line)
+    {
+        HueCombo c;
+        XString effect;
+        if (!extract(line, record<'|'>(&c.base, &c.modifier, &effect,
+                        &c.effect_pct, &c.energy_pct, &c.current_pct,
+                        &c.description)))
+            return false;
+        if (effect == "ignite"_s)
+            c.effect = HueComboEffect::IGNITE;
+        else
+            return false;
+        // Both skills must exist; the modifier must be able to ignite.
+        const HueSkillRank *base = hue_skill_rank(c.base, 1);
+        const HueSkillRank *mod = hue_skill_rank(c.modifier, 1);
+        if (!base || !mod || c.base == c.modifier || c.description.size() > 79)
+            return false;
+        if (c.effect == HueComboEffect::IGNITE
+                && (base->kind != HueActionKind::GUST
+                    || mod->kind != HueActionKind::SPARK))
+            return false;
+        if (c.effect_pct < 0 || c.energy_pct < 0 || c.current_pct < 0)
+            return false;
+        if (hue_combo(c.base, c.modifier))
+            return false;
+        combos.push_back(std::move(c));
+        return true;
+    });
+}
+
 bool read_regions(ZString dir)
 {
     regions.clear();
@@ -330,6 +374,19 @@ const std::map<int, HueVesselDef>& hue_all_vessels()
     return vessels;
 }
 
+const HueCombo *hue_combo(int base, int modifier)
+{
+    for (const HueCombo& c : combos)
+        if (c.base == base && c.modifier == modifier)
+            return &c;
+    return nullptr;
+}
+
+const std::vector<HueCombo>& hue_all_combos()
+{
+    return combos;
+}
+
 const HueGrant *hue_origin(int id)
 {
     auto it = origins.find(id);
@@ -365,11 +422,12 @@ bool hue_readdb(ZString dir)
 {
     // Skills before origins (grants name skills); items are already loaded.
     bool ok = read_balance(dir) && read_skills(dir) && read_vessels(dir)
-        && read_origins(dir) && read_regions(dir);
+        && read_origins(dir) && read_regions(dir) && read_combos(dir);
     if (ok)
         PRINTF("hue_db: balance v%d, %zu skills, %zu vessels, %zu origins, "
-                "%zu profiles\n"_fmt, hue_balance.version, skills.size(),
-                vessels.size(), origins.size(), profiles.size());
+                "%zu profiles, %zu combinations\n"_fmt, hue_balance.version,
+                skills.size(), vessels.size(), origins.size(), profiles.size(),
+                combos.size());
     return ok;
 }
 } // namespace map

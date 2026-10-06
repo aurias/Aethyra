@@ -48,6 +48,7 @@
 #include "mob.hpp"
 #include "path.hpp"
 #include "pc.hpp"
+#include "terrain.hpp"
 #include "skill.hpp"
 
 #include "../poison.hpp"
@@ -2322,6 +2323,10 @@ int battle_check_range(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
     arange = ((rangex > rangey) ? rangex : rangey);
 
     if (src->bl_m != bl->bl_m)        // 違うマップ | different map
+        return 0;
+
+    // Aethyra: no attacks between elevation levels (across a cliff).
+    if (!terrain_same_level(src->bl_m, src->bl_x, src->bl_y, bl->bl_x, bl->bl_y))
         return 0;
 
     if (range > 0 && range < arange)    // 遠すぎる  | too far

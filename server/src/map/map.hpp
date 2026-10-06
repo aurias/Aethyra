@@ -557,6 +557,8 @@ struct map_local : map_abstract
     int mask;
     int hash;
     Array<dumb_ptr<npc_data>, MAX_NPC_PER_MAP> npc;
+    /// Aethyra gameplay elevation per cell (see terrain.hpp); empty = flat.
+    std::vector<uint8_t> terrain;
 };
 
 struct map_remote : map_abstract

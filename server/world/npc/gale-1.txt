@@ -41,9 +41,41 @@ L_Close:
     close;
 }
 
-// Vegetation regrows; hoppers return.
+// Wren keeps the terrace above the stairs and teaches its ways down and up.
+gale-1,11,7,0|script|Wren the Ridge-runner|106
+{
+    mes "[Wren the Ridge-runner]";
+    mes "\"Stairs are for carrying things. The wind is for getting places.\"";
+    next;
+    menu "Teach me to move on the wind.", L_Teach,
+         "Where is it worth going?", L_Where,
+         "Goodbye.", L_Close;
+
+L_Teach:
+    set @taught, huegrant(4, 1) + huegrant(5, 1);
+    mes "[Wren the Ridge-runner]";
+    if (@taught)
+        mes "\"Step to a cliff edge and face it. F lets the wind carry you down - Featherfall. G throws you up a ledge - Upward Jump.\"";
+    if (@taught == 0)
+        mes "\"You know the moves already. Practise.\"";
+    mes "\"Watch the ground ahead of you: a marker shows where you would land, or why you can't.\"";
+    mes "\"A narrow ledge you can jump. The terrace face here is too wide until you have practised.\"";
+    goto L_Close;
+
+L_Where:
+    mes "[Wren the Ridge-runner]";
+    mes "\"Up on the lookout, east of here, Skyreeds grow where nobody without wind can reach. Their stems are the best Breeze Reeds.\"";
+    mes "\"Hoppers love the terrace edge. A Gust at the right moment sends them tumbling to the meadow.\"";
+    goto L_Close;
+
+L_Close:
+    close;
+}
+
+// Vegetation regrows; hoppers return. The arrival clearing stays quiet.
 gale-1,20,21,17,6|monster|Meadow Grass|1101,22,20000ms,10000ms
-gale-1,20,4,17,3|monster|Wild Herb|1102,7,30000ms,15000ms
+gale-1,12,5,9,3|monster|Wild Herb|1102,7,30000ms,15000ms
 gale-1,31,21,6,6|monster|Windflower|1103,6,30000ms,15000ms
-gale-1,29,19,8,7|monster|Gust Hopper|1010,4,30000ms,15000ms
-gale-1,28,4,9,3|monster|Gust Hopper|1010,2,30000ms,15000ms
+gale-1,30,2,5,1|monster|Skyreed|1104,4,40000ms,20000ms
+gale-1,33,14,5,3|monster|Gust Hopper|1010,3,30000ms,15000ms
+gale-1,18,7,3,1|monster|Gust Hopper|1010,2,30000ms,15000ms

@@ -13,4 +13,7 @@
  <monster id="101" name="Windflower" targetCursor="small">
   <sprite>plant-flower.xml</sprite>
  </monster>
+ <monster id="102" name="Skyreed" targetCursor="small">
+  <sprite>plant-skyreed.xml</sprite>
+ </monster>
 </monsters>

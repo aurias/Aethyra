@@ -808,6 +808,21 @@ void builtin_huerestore(ScriptState *st)
 }
 
 /*==========================================
+ * Aethyra: huegrant skill, rank - a teacher grants a hue skill rank (no
+ * skill points). Returns 1 if it changed anything.
+ *------------------------------------------
+ */
+static
+void builtin_huegrant(ScriptState *st)
+{
+    dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    script_nullpo_end(sd, "player not found"_s);
+    int skill = conv_num(st, &AARG(0));
+    int rank = conv_num(st, &AARG(1));
+    push_int<ScriptDataInt>(st->stack, hue_grant_skill(sd, skill, rank) ? 1 : 0);
+}
+
+/*==========================================
  *
  *------------------------------------------
  */
@@ -5671,6 +5686,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(mapwarp, "MMxy"_s, '\0'),
     BUILTIN(heal, "ii?"_s, '\0'),
     BUILTIN(huerestore, "si"_s, '\0'),
+    BUILTIN(huegrant, "ii"_s, 'i'),
     BUILTIN(injure, "iii"_s, '\0'),
     BUILTIN(input, "N"_s, '\0'),
     BUILTIN(requestitem, "N?"_s, '\0'),

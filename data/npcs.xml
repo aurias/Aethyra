@@ -3,4 +3,7 @@
  <npc id="105">
   <sprite>placeholder-npc.xml</sprite>
  </npc>
+ <npc id="106">
+  <sprite>placeholder-ranger.xml</sprite>
+ </npc>
 </npcs>

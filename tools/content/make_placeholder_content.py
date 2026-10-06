@@ -26,7 +26,7 @@ TILE = 32
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 
 # Placeholder tileset, one row. Index order is part of the map format.
-GRASS, GRASS_ALT, CLIFF, PLATEAU, WATER, STAIRS, FLOWERS, PATH = range(8)
+GRASS, GRASS_ALT, CLIFF, PLATEAU, WATER, STAIRS, FLOWERS, PATH, LOOKOUT = range(9)
 TILE_COLOURS = [
     (126, 176, 96),    # grass
     (110, 162, 84),    # darker grass tuft
@@ -36,6 +36,7 @@ TILE_COLOURS = [
     (176, 150, 112),   # stairs
     (126, 176, 96),    # grass with flowers (dots drawn below)
     (196, 176, 132),   # dirt path
+    (172, 214, 134),   # high lookout grass
 ]
 
 
@@ -70,7 +71,7 @@ def tileset_pixel(x, y):
         r, g, b = 160, 200, 230                   # ripples
     elif index == FLOWERS and (tx * 7 + ty * 13) % 37 == 0:
         r, g, b = 236, 228, 140                   # small flowers
-    elif index in (GRASS, GRASS_ALT, PLATEAU) and (tx * 5 + ty * 3) % 23 == 0:
+    elif index in (GRASS, GRASS_ALT, PLATEAU, LOOKOUT) and (tx * 5 + ty * 3) % 23 == 0:
         r, g, b = r - 18, g - 10, b - 18          # grass texture
     if edge and index in (CLIFF, STAIRS):
         r, g, b = r - 12, g - 12, b - 12
@@ -83,25 +84,62 @@ def collision_pixel(x, y):
 
 
 def build_layers(width, height):
+    """Ground tiles, blocked cells and gameplay elevation.
+
+    Elevation is separate from the graphics: every cell has a level
+    (0 meadow, 1 terrace, 2 lookout), cliff faces are marked 'C' (blocked
+    for walking, crossed only by featherfall, jumps and falls) and stair
+    cells 'S' connect neighbouring levels. tmx2wlk.py exports it for the
+    server and checks that levels only meet at stairs.
+    """
     ground = [[GRASS] * width for _ in range(height)]
     blocked = [[False] * width for _ in range(height)]
+    level = [[0] * width for _ in range(height)]
+    cliff = [[False] * width for _ in range(height)]
+    stair = [[False] * width for _ in range(height)]
 
-    # Upper terrace in the north, with a cliff edge along its south side.
+    def set_cliff(x, y):
+        ground[y][x] = CLIFF
+        blocked[y][x] = True
+        cliff[y][x] = True
+
+    # Upper terrace (level 1) in the north, cliff band along its south side.
     terrace_bottom = 9
     for y in range(terrace_bottom):
         for x in range(width):
             ground[y][x] = PLATEAU
+            level[y][x] = 1
     for x in range(width):
-        ground[terrace_bottom][x] = CLIFF
-        ground[terrace_bottom + 1][x] = CLIFF
-        blocked[terrace_bottom][x] = True
-        blocked[terrace_bottom + 1][x] = True
+        set_cliff(x, terrace_bottom)
+        set_cliff(x, terrace_bottom + 1)
 
     # The ordinary stair route between the terrace and the meadow.
     for y in (terrace_bottom, terrace_bottom + 1):
         for x in (8, 9):
             ground[y][x] = STAIRS
             blocked[y][x] = False
+            cliff[y][x] = False
+            stair[y][x] = True
+
+    # The lookout (level 2): reached only by jumping up from the terrace.
+    # Its spur in the east overhangs the meadow, two levels up.
+    for y in range(1, 4):
+        for x in range(24, width - 1):
+            ground[y][x] = LOOKOUT
+            level[y][x] = 2
+    for y in range(4, terrace_bottom):
+        for x in range(36, width - 1):
+            ground[y][x] = LOOKOUT
+            level[y][x] = 2
+    for y in range(1, 5):
+        set_cliff(23, y)
+        level[y][23] = 1
+    for x in range(23, 36):
+        set_cliff(x, 4)
+        level[4][x] = 1
+    for y in range(4, terrace_bottom):
+        set_cliff(35, y)
+        level[y][35] = 1
 
     # Pond in the south-east.
     for y in range(18, 25):
@@ -127,13 +165,23 @@ def build_layers(width, height):
                 elif h < 3:
                     ground[y][x] = GRASS_ALT
 
-    # Map border is solid.
+    # Map border is solid (and not a cliff: nothing crosses it).
     for x in range(width):
-        blocked[0][x] = blocked[height - 1][x] = True
+        for y in (0, height - 1):
+            blocked[y][x] = True
+            cliff[y][x] = False
     for y in range(height):
-        blocked[y][0] = blocked[y][width - 1] = True
+        for x in (0, width - 1):
+            blocked[y][x] = True
+            cliff[y][x] = False
 
-    return ground, blocked
+    elevation = []
+    for y in range(height):
+        row = ''
+        for x in range(width):
+            row += 'C' if cliff[y][x] else 'S' if stair[y][x] else str(level[y][x])
+        elevation.append(row)
+    return ground, blocked, elevation
 
 
 def encode_layer(cells, first_gid):
@@ -146,7 +194,7 @@ def encode_layer(cells, first_gid):
     return base64.b64encode(gzip.compress(bytes(data), mtime=0)).decode()
 
 
-def write_tmx(path, width, height, ground, blocked):
+def write_tmx(path, width, height, ground, blocked, elevation):
     collision = [[1 if b else 0 for b in row] for row in blocked]
     fringe = [[None] * width for _ in range(height)]
     tileset_gid, collision_gid = 1, 1 + len(TILE_COLOURS)
@@ -161,9 +209,11 @@ def write_tmx(path, width, height, ground, blocked):
         f.write('<map version="1.0" orientation="orthogonal" width="%d" '
                 'height="%d" tilewidth="%d" tileheight="%d">\n'
                 % (width, height, TILE, TILE))
+        # Gameplay elevation, one row per map row, rows joined by ','.
         f.write(' <properties>\n'
                 '  <property name="name" value="Windswept Meadow (test)"/>\n'
-                ' </properties>\n')
+                '  <property name="elevation" value="%s"/>\n'
+                ' </properties>\n' % ','.join(elevation))
         f.write(' <tileset firstgid="%d" name="placeholder-gale" '
                 'tilewidth="%d" tileheight="%d">\n'
                 '  <image source="../graphics/tiles/placeholder-gale.png" '
@@ -246,6 +296,7 @@ def write_sprites(data):
     for name, body, accent in (
             ('placeholder-player', (120, 150, 190), (40, 40, 60)),
             ('placeholder-npc', (110, 170, 150), (40, 60, 40)),
+            ('placeholder-ranger', (176, 150, 104), (70, 90, 60)),
             ('error', (220, 40, 200), (0, 0, 0))):
         with open(os.path.join(sprites, name + '.png'), 'wb') as f:
             f.write(png(sheet_w, sheet_h, figure_pixel(body, accent)))
@@ -293,6 +344,15 @@ def plant_pixel(kind):
                 if (fx * 7 + fy * 5) % 23 == 0:
                     return (245, 245, 230, 255)   # tiny white flowers
                 return (70, 140, 80, 255)
+        elif kind == 'skyreed':
+            # Tall pale reeds with feathery tips: they grow only up high.
+            for i, bx in enumerate((-6, -2, 2, 6)):
+                lean = (60 - fy) // 10 * (1 if i % 2 else -1)
+                x = cx + bx + lean
+                if abs(fx - x) <= 1 and 14 <= fy < 60:
+                    return (190, 205, 150, 255)
+                if (fx - x) ** 2 + (fy - 12) ** 2 <= 9:
+                    return (235, 230, 205, 255)
         elif kind == 'flower':
             if abs(fx - cx) <= 1 and 42 <= fy < 60:
                 return (90, 150, 80, 255)
@@ -326,7 +386,7 @@ def write_creatures(data):
         f.write(sheet(hopper_pixel))
     with open(os.path.join(sprites, 'gust-hopper.xml'), 'w') as f:
         f.write(sprite_xml('graphics/sprites/gust-hopper.png', actions))
-    for kind in ('grass', 'herb', 'flower'):
+    for kind in ('grass', 'herb', 'flower', 'skyreed'):
         name = 'plant-' + kind
         with open(os.path.join(sprites, name + '.png'), 'wb') as f:
             f.write(sheet(plant_pixel(kind)))
@@ -397,6 +457,10 @@ def write_effects(data):
         f.write(soft_dot((235, 250, 245), 4))
     with open(os.path.join(particles, 'leaf.png'), 'wb') as f:
         f.write(soft_dot((120, 190, 90), 2))
+    with open(os.path.join(particles, 'ember.png'), 'wb') as f:
+        f.write(soft_dot((255, 150, 40), 3))
+    with open(os.path.join(particles, 'flame.png'), 'wb') as f:
+        f.write(soft_dot((240, 80, 30), 4))
 
     def effect(image, count, power, lifetime, angle=(0, 360), z=16,
                vertical=(0, 30)):
@@ -426,6 +490,19 @@ def write_effects(data):
         # Cut leaves scattering.
         'gale-scythe.particle.xml': effect('leaf.png', 10, (1.0, 2.0),
                                            (30, 60), z=8),
+        # Sparks bursting on the target.
+        'ember-spark.particle.xml': effect('ember.png', 16, (1.5, 3.0),
+                                           (15, 35), z=20, vertical=(10, 60)),
+        # Flames licking upward while it burns.
+        'ember-burn.particle.xml': effect('flame.png', 6, (0.5, 1.0),
+                                          (20, 40), z=12, vertical=(70, 90)),
+        # A soft cushion of air under a featherfall.
+        'gale-featherfall.particle.xml': effect('wind-puff.png', 10,
+                                                (0.4, 0.9), (40, 70), z=4,
+                                                vertical=(0, 15)),
+        # A burst of wind under the feet of a jump.
+        'gale-jump.particle.xml': effect('wind-puff.png', 12, (1.5, 2.5),
+                                         (20, 35), z=2, vertical=(0, 10)),
     }
     for name, text in files.items():
         with open(os.path.join(particles, name), 'w') as f:
@@ -479,12 +556,18 @@ def write_databases(data):
  <monster id="101" name="Windflower" targetCursor="small">
   <sprite>plant-flower.xml</sprite>
  </monster>
+ <monster id="102" name="Skyreed" targetCursor="small">
+  <sprite>plant-skyreed.xml</sprite>
+ </monster>
 </monsters>
 """,
         'npcs.xml': """<?xml version="1.0"?>
 <npcs>
  <npc id="105">
   <sprite>placeholder-npc.xml</sprite>
+ </npc>
+ <npc id="106">
+  <sprite>placeholder-ranger.xml</sprite>
  </npc>
 </npcs>
 """,
@@ -508,6 +591,10 @@ def write_databases(data):
  <effect id="900" particle="graphics/particles/gale-dash.particle.xml"/>
  <effect id="901" particle="graphics/particles/gale-gust.particle.xml"/>
  <effect id="902" particle="graphics/particles/gale-scythe.particle.xml"/>
+ <effect id="903" particle="graphics/particles/ember-spark.particle.xml"/>
+ <effect id="904" particle="graphics/particles/ember-burn.particle.xml"/>
+ <effect id="906" particle="graphics/particles/gale-featherfall.particle.xml"/>
+ <effect id="907" particle="graphics/particles/gale-jump.particle.xml"/>
 </being-effects>
 """,
     }
@@ -535,9 +622,9 @@ def main():
     with open(os.path.join(tiles_dir, 'collision.png'), 'wb') as f:
         f.write(png(TILE * 2, TILE, collision_pixel))
 
-    ground, blocked = build_layers(width, height)
+    ground, blocked, elevation = build_layers(width, height)
     write_tmx(os.path.join(maps_dir, 'gale-1.tmx'), width, height,
-              ground, blocked)
+              ground, blocked, elevation)
     return 0
 
 

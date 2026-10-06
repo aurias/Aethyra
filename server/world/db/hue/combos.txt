@@ -1,0 +1,7 @@
+// Live combinations: a base action modified by another learned skill.
+// The modifier pays its own share (energy_pct/current_pct of its demand)
+// from its own hue and occupies an activation of that hue. PROVISIONAL.
+// base|modifier|effect|effect_pct|energy_pct|current_pct|description
+//  ignite: every enemy the base action moves takes the modifier's fire
+//  damage (effect_pct of it) and burn chance.
+2|6|ignite|100|75|100|Gust carries Spark's fire: everyone it moves takes fire damage and may burn.

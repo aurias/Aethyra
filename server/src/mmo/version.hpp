@@ -52,9 +52,10 @@ namespace tmwa
 // the map server treats them as dialect 1 (AETHYRA_CLIENT_DIALECT).
 //   Aethyra protocol 1: hue skills 0x0216/0x0217 (first demo; sent 1)
 //   Aethyra protocol 2: hue state, actions, vessels 0x0218-0x021f
+//   Aethyra protocol 3: action target and live modifier; traversal slides
 #define MIN_CLIENT_VERSION 1
 #define AETHYRA_PROTOCOL_BASE 100
-#define AETHYRA_PROTOCOL 2
+#define AETHYRA_PROTOCOL 3
 #define AETHYRA_MIN_CLIENT_VERSION (AETHYRA_PROTOCOL_BASE + AETHYRA_PROTOCOL)
 #define AETHYRA_CLIENT_DIALECT 1
 

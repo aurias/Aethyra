@@ -71,6 +71,15 @@ enum class HueReason : uint8_t
     NOT_A_VESSEL = 19,
     SUPPLY_FULL = 20,
     OVERLOAD_FAILED = 21,   // the overloaded attempt fizzled
+    NOT_AT_EDGE = 22,       // no cliff face in front
+    TOO_FAR = 23,           // detail: cliff cells in the way
+    NO_LANDING = 24,        // nothing to stand on beyond the cliff
+    OBSTRUCTED = 25,        // a corner is in the way
+    WRONG_WAY = 26,         // detail: 1 = the landing is above, 2 = below
+    TOO_HIGH = 27,          // detail: levels it would take
+    LANDING_OCCUPIED = 28,
+    NO_TARGET = 29,         // detail: range
+    INCOMPATIBLE = 30,      // detail: the modifier skill
 };
 
 enum class HueOutcome : uint8_t
@@ -105,9 +114,12 @@ void hue_send_all(dumb_ptr<map_session_data> sd);
 void hue_level_points(dumb_ptr<map_session_data> sd);
 
 /// Use a skill facing dir; flags are HUE_ACCEPT_RISK. request numbers
-/// that were already handled are ignored.
+/// that were already handled are ignored. target is the being the player
+/// has selected (0: none; targeted skills then pick the nearest in
+/// front). modifier is a skill applied live to the base skill (0: none);
+/// it must be a registered combination and pays its own way.
 void hue_action(dumb_ptr<map_session_data> sd, int skill, DIR dir,
-        uint8_t flags, uint32_t request);
+        uint8_t flags, uint32_t request, BlockId target, int modifier);
 
 /// Learn a skill or raise it a rank.
 void hue_learn(dumb_ptr<map_session_data> sd, int skill);
@@ -131,6 +143,11 @@ int hue_restore(dumb_ptr<map_session_data> sd, Hue hue, int amount);
 void do_init_hue();
 
 // --- developer fixtures (GM commands only) -------------------------------
+
+/// Grant hue access (mastery 1, homeland cap, full energy) or a skill
+/// rank: developer fixtures, and teaching NPCs for skills.
+bool hue_grant_access(dumb_ptr<map_session_data> sd, Hue hue);
+bool hue_grant_skill(dumb_ptr<map_session_data> sd, int skill, int rank);
 
 /// Apply a developer profile (resets the hue state). False if unknown.
 bool hue_apply_profile(dumb_ptr<map_session_data> sd, XString name);

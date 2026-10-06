@@ -52,6 +52,9 @@ enum class HueActionKind : uint8_t
     DASH = 1,       // move the user along a line
     GUST = 2,       // displace enemies in front, no damage
     SCYTHE = 3,     // harvest vegetation in front
+    FEATHERFALL = 4,// descend a cliff face without stairs
+    JUMP = 5,       // climb onto a higher landing
+    SPARK = 6,      // fire damage to one enemy, chance to burn
     FLOW = 10,      // permanent perk: more safe current from vessels
 };
 
@@ -94,6 +97,26 @@ struct HueGrant
     int level = 0;          // profiles only
 };
 
+/// What a modifier adds to a base action when both are used together.
+enum class HueComboEffect : uint8_t
+{
+    IGNITE = 1,     // enemies the base action displaces take the
+                    // modifier's fire damage and burn chance
+};
+
+/// A legal live combination: base skill modified by another skill. The
+/// modifier pays its own share from its own hue and occupies an
+/// activation of that hue; nothing about the base is waived.
+struct HueCombo
+{
+    int base = 0, modifier = 0;
+    HueComboEffect effect = HueComboEffect::IGNITE;
+    int effect_pct = 100;   // of the modifier's effect
+    int energy_pct = 100;   // of the modifier's energy demand
+    int current_pct = 100;  // of the modifier's current demand
+    RString description;
+};
+
 struct HueMasteryRow
 {
     int mastery = 0, capacity = 0, regen = 0, current = 0, allowance = 0,
@@ -113,6 +136,12 @@ struct HueBalance
     int destroy_base_pct = 35, destroy_slope_pct = 50, destroy_mastery_pct = 1;
     int success_base_pct = 90, success_slope_pct = 30, success_mastery_pct = 1;
     int overload_wear = 40;
+    // Forced falls from ledges (Gust): how far a push can carry a being
+    // down, and what landing does to it.
+    int ledge_fall_max_levels = 3, ledge_fall_max_span = 3;
+    int fall_stagger_ms = 2000, fall_damage_pct = 0;
+    // Burning: damage per tick and how many ticks.
+    int burn_tick_ms = 1000, burn_ticks = 3, burn_tick_damage = 2;
 };
 
 extern HueBalance hue_balance;
@@ -130,6 +159,9 @@ const std::map<int, std::vector<HueSkillRank>>& hue_all_skills();
 
 const HueVesselDef *hue_vessel(ItemNameId item);
 const std::map<int, HueVesselDef>& hue_all_vessels();
+
+const HueCombo *hue_combo(int base, int modifier);
+const std::vector<HueCombo>& hue_all_combos();
 
 const HueGrant *hue_origin(int id);
 const HueGrant *hue_profile(XString name);

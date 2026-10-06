@@ -9,10 +9,11 @@ drives it with protocol clients and prints PASS/FAIL lines; the exit status
 is the number of failed checks. --keep copies the final world directory to
 DIR so later migrations can be tested against it.
 
-Scenarios: baseline (default), pass1, migration.
+Scenarios: baseline (default), pass1, migration, pass2, spark.
 """
 
 import os
+import re
 import shutil
 import socket
 import struct
@@ -45,7 +46,8 @@ def check(ok, what):
 class World:
     """A world directory and the server process running it."""
 
-    def __init__(self, build, directory=None, gm_accounts=(2000000,)):
+    def __init__(self, build, directory=None, gm_accounts=(2000000,),
+                 accounts=()):
         self.build = os.path.abspath(build)
         self.dir = directory or tempfile.mkdtemp(prefix='aethyra-world-')
         self.proc = None
@@ -55,6 +57,17 @@ class World:
             with open(os.path.join(self.dir, 'save', 'gm_account.txt'), 'w') as f:
                 for account in gm_accounts:
                     f.write('%d 99\n' % account)
+            # Extra ready-made accounts (ids from 2000001), so they can be
+            # GMs from the start; registering accounts cannot be.
+            if accounts:
+                path = os.path.join(self.dir, 'save', 'account.txt')
+                lines = [l for l in open(path) if '%newid%' not in l]
+                for i, (user, password) in enumerate(accounts):
+                    lines.append('%d\t%s\t%s\t-\tM\t0\t0\ta@a.com\t-\t0\t-\t-\t0\t\n'
+                                 % (2000001 + i, user, password))
+                lines.append('%%newid%%\t%d\n' % (2000001 + len(accounts)))
+                with open(path, 'w') as f:
+                    f.writelines(lines)
         self.bin = os.path.join(self.dir, 'bin')
         os.makedirs(self.bin, exist_ok=True)
         os.makedirs(os.path.join(self.dir, 'log'), exist_ok=True)
@@ -236,6 +249,12 @@ class Player:
         elif pid == 0x00b0:
             kind, value = struct.unpack_from('<HI', body, 0)
             self.stats[kind] = value
+        elif pid == 0x0091:
+            # Warped (even within the map): reload, as the client does.
+            x, y = struct.unpack_from('<HH', body, 16)
+            self.pos = (x, y)
+            self.beings = {}
+            self.m.send(struct.pack('<H', 0x007d))
         elif pid == 0x021a:
             origin, version, points, ceiling, active, balance = \
                 struct.unpack_from('<BBhBBH', body, 0)
@@ -263,12 +282,13 @@ class Player:
             self.lots[ioff - 2] = dict(item=nameid, charge=charge,
                                        condition=cond, supply=supply)
         elif pid == 0x0219:
-            fields = struct.unpack_from('<IHBBHHHHHH', body, 0)
+            fields = struct.unpack_from('<IHBBHHHHHHHHHH', body, 0)
             names = ('request', 'skill', 'outcome', 'reason', 'energy',
-                     'current', 'channel', 'personal', 'vessel', 'detail')
+                     'current', 'channel', 'personal', 'vessel', 'detail',
+                     'modifier', 'mod_personal', 'mod_vessel', 'mod_detail')
             r = dict(zip(names, fields))
             r['vessels'] = []
-            for i in range(20, len(body), 11):
+            for i in range(28, len(body), 11):
                 ioff, nameid, amount, spent, fate, load = \
                     struct.unpack_from('<HHHHBH', body, i)
                 r['vessels'].append(dict(index=ioff - 2, item=nameid,
@@ -305,10 +325,12 @@ class Player:
     def gale(self):
         return self.hue.get(0, {}).get('energy')
 
-    def act(self, skill, direction, flags=0, wait=0.6, request=None):
+    def act(self, skill, direction, flags=0, wait=0.6, request=None,
+            target=0, modifier=0):
         """Use a skill; returns the server's result (or None)."""
         before = len(self.results)
-        req = pc.use_skill(self.m, skill, direction, flags, request)
+        req = pc.use_skill(self.m, skill, direction, flags, request, target,
+                           modifier)
         self.pump(wait)
         for r in self.results[before:]:
             if r['request'] == req:
@@ -559,6 +581,7 @@ OVERLOAD_FAILED = 21
 REJECTED, SUCCEEDED, FAILED, LEARNED, SUPPLY = 0, 1, 2, 3, 4
 SAFE, STRAINED, DESTROYED = 0, 1, 2
 TEMPERED = 706
+EMBER = 2
 DASH, GUST, SCYTHE, FLOW = 1, 2, 3, 10
 
 
@@ -997,7 +1020,354 @@ def migration(build, keep=None):
                 'bin', 'log', 'server.stop'))
 
 
-SCENARIOS = {'baseline': baseline, 'pass1': pass1, 'migration': migration}
+# --------------------------------------------------------------------------
+# Pass 2: elevation, featherfall, upward jump, ledge Gust
+
+FEATHERFALL, JUMP, SPARK = 4, 5, 6
+NOT_AT_EDGE, TOO_FAR, NO_LANDING, OBSTRUCTED, WRONG_WAY, TOO_HIGH = \
+    22, 23, 24, 25, 26, 27
+LANDING_OCCUPIED, NO_TARGET, INCOMPATIBLE = 28, 29, 30
+NO_ACCESS, NOT_LEARNED, COOLDOWN = 3, 2, 5
+WREN = 106
+SKYREED = 1104
+
+
+def where(p):
+    """The server's idea of the player's position (@where)."""
+    p.mark()
+    p.say('@where')
+    p.pump(0.5)
+    for pid, body in p.events:
+        if pid == 0x008e:
+            m = re.search(r'\((\d+),(\d+)\)', body[2:].decode(errors='replace'))
+            if m:
+                return int(m.group(1)), int(m.group(2))
+    return None
+
+
+def warp(p, x, y):
+    gm(p, '@warp gale-1 %d %d' % (x, y), wait=0.6)
+    p.pump(0.8)     # the map reload brings the beings back
+    p.pos = (x, y)
+
+
+def spawn_at(p, mob, x, y):
+    before = set(p.find(mob))
+    p.say('@spawn %d 1 %d %d' % (mob, x, y))
+    p.pump(0.6)
+    new = [i for i in p.find(mob) if i not in before]
+    return new[0] if new else None
+
+
+def damage_to(p, target):
+    """Damage numbers the client was shown for target (0x008a)."""
+    out = []
+    for body in p.got(0x008a):
+        src, dst = struct.unpack_from('<II', body, 0)
+        dmg = struct.unpack_from('<H', body, 20)[0]
+        if dst == target:
+            out.append(dmg)
+    return out
+
+
+def leap(p, skill, direction, wait=0.8):
+    ready(p)
+    p.mark()
+    return p.act(skill, direction, wait=wait)
+
+
+def pass2(build, keep=None):
+    world = World(build, gm_accounts=(2000000, 2000001),
+                  accounts=[('friend', 'friend-pass')])
+    print('world: %s' % world.dir)
+    try:
+        world.start()
+        a = Player('aethyra-test', 'test-pass', name='Wanderer').connect()
+        b = Player('friend', 'friend-pass', name='Breezy').connect()
+        gm(a, '@killmonster2')
+
+        # Wren teaches the traversal skills (in-world instruction).
+        warp(a, 12, 7)
+        wren = a.find(WREN)
+        check(len(wren) == 1, 'Wren the Ridge-runner is on the terrace')
+        a.talk(wren[0], [1])
+        check(a.skills.get(FEATHERFALL, (0,))[0] == 1 and
+              a.skills.get(JUMP, (0,))[0] == 1,
+              'Wren teaches Featherfall and Upward Jump (%s)' % a.skills)
+        check(any('Featherfall' in t for t in a.npc_text),
+              'Wren explains the controls')
+
+        # Stairs: ordinary walking changes level only there.
+        warp(a, 8, 13)
+        a.walk(8, 7)
+        a.pump(3.0)
+        check(where(a) == (8, 7), 'walking up the stairs reaches the terrace '
+              '(%s)' % (where(a),))
+        a.walk(14, 13)        # the meadow, below the cliff
+        a.pump(4.0)
+        check(where(a) == (14, 13), 'walking back down needs the stairs and '
+              'gets there (%s)' % (where(a),))
+
+        # Featherfall down the terrace face.
+        warp(a, 12, 8)
+        b.walk(13, 13)
+        b.pump(2.0)
+        b.mark()
+        r = leap(a, FEATHERFALL, 'down')
+        b.pump(0.3)
+        mine = [sl for sl in a.slides() if sl[0] == a.id]
+        check(r and r['outcome'] == SUCCEEDED and mine and mine[0][1:] == (12, 11, 2)
+              and where(a) == (12, 11),
+              'Featherfall drifts down the cliff to (12, 11): %s' % summary(r))
+        check(any(sl[0] == a.id and sl[3] == 2 for sl in b.slides()),
+              'the second client sees the featherfall')
+
+        r = leap(a, FEATHERFALL, 'up')
+        check(r and r['reason'] == WRONG_WAY and r['personal'] == 0,
+              'Featherfall cannot go up a cliff: %s' % summary(r))
+        r = leap(a, JUMP, 'up')
+        check(r and r['reason'] == TOO_FAR and r['detail'] == 2,
+              'the terrace face (2 cells) is too wide for Jump rank 1: %s'
+              % summary(r))
+        warp(a, 15, 15)
+        r = leap(a, FEATHERFALL, 'down')
+        check(r and r['reason'] == NOT_AT_EDGE, 'no cliff ahead: %s' % summary(r))
+
+        # Upward Jump onto the lookout, then harvest what grows only there.
+        gm(a, '@killmonster2')
+        warp(a, 28, 5)
+        r = leap(a, JUMP, 'up')
+        jumped = any(sl[0] == a.id and sl[3] == 3 for sl in a.slides())
+        check(r and r['outcome'] == SUCCEEDED and jumped and
+              where(a) == (28, 3),
+              'Upward Jump climbs onto the lookout: %s' % summary(r))
+        reed = spawn_at(a, SKYREED, 29, 3)
+        reeds = a.count(REED)
+        ready(a)
+        r = a.act(SCYTHE, 'right', wait=1.0)
+        check(reed and a.count(REED) > reeds,
+              'Skyreed on the lookout yields Breeze Reeds (%d -> %d)'
+              % (reeds, a.count(REED)))
+
+        # A two-level drop needs Featherfall rank 2.
+        warp(a, 37, 8)
+        r = leap(a, FEATHERFALL, 'down')
+        check(r and r['reason'] == TOO_HIGH and r['detail'] == 2,
+              'the spur is two levels up: too high for rank 1: %s' % summary(r))
+        r = leap(a, FEATHERFALL, 'downleft')
+        check(r and r['reason'] in (TOO_HIGH, OBSTRUCTED, TOO_FAR),
+              'a diagonal drop is checked the same way: %s' % summary(r))
+
+        # Diagonal corner against a solid border.
+        warp(a, 2, 8)
+        r = leap(a, FEATHERFALL, 'downleft')
+        check(r and r['reason'] == OBSTRUCTED,
+              'a diagonal featherfall past a solid corner is obstructed: %s'
+              % summary(r))
+        r = leap(a, JUMP, 'upright')
+        check(r and r['reason'] == NOT_AT_EDGE,
+              'a diagonal with no cliff in front is not a ledge: %s' % summary(r))
+
+        # Occupied landing.
+        warp(a, 12, 8)
+        warp(b, 12, 11)
+        gm(b, '@heal')
+        a.pump(0.3)
+        at = (b.pos, a.beings.get(b.id, {}).get("pos"))
+        r = leap(a, FEATHERFALL, 'down')
+        check(r and r['reason'] == LANDING_OCCUPIED and where(a) == (12, 8),
+              'Featherfall onto another player (at %s) is refused: %s'
+              % (at, summary(r)))
+        warp(b, 16, 14)
+
+        # Ledge Gust: a hopper on the edge is blown down to the meadow.
+        warp(a, 14, 7)
+        gm(a, '@killmonster2')
+        hop = spawn_at(a, HOPPER, 14, 8)
+        b.mark()
+        ready(a)
+        a.mark()
+        r = a.act(GUST, 'down', wait=1.0)
+        b.pump(0.3)
+        falls = [sl for sl in a.slides() if sl[0] == hop and sl[3] == 4]
+        check(hop and falls and falls[0][2] == 11 and not damage_to(a, hop),
+              'Gust blows the hopper off the ledge to the meadow, unharmed: %s'
+              % falls)
+        check(any(sl[0] == hop and sl[3] == 4 for sl in b.slides()),
+              'the second client sees the hopper fall')
+
+        # It cannot bite back up the cliff while it waits below.
+        warp(a, 14, 8)
+        a.mark()
+        a.pump(4.0)
+        bites = [x for x in a.got(0x008a)
+                 if struct.unpack_from('<II', x, 0) == (hop, a.id)]
+        check(not bites, 'the fallen hopper cannot attack across the cliff')
+
+        # Gust does not reach the other level, nor push up a cliff.
+        a.mark()
+        ready(a)
+        r = a.act(GUST, 'down', wait=0.8)
+        check(not [sl for sl in a.slides() if sl[0] == hop],
+              'Gust from the terrace does not move a hopper below it')
+        warp(a, 14, 13)
+        gm(a, '@killmonster2')
+        hop2 = spawn_at(a, HOPPER, 14, 12)
+        ready(a)
+        a.mark()
+        r = a.act(GUST, 'up', wait=0.8)
+        moved = [sl for sl in a.slides() if sl[0] == hop2]
+        check(hop2 and (not moved or moved[0][3] == 1) and
+              a.beings.get(hop2, {}).get('pos', (0, 0))[1] >= 11,
+              'pushed against a cliff from below, the hopper stays on the '
+              'meadow (%s)' % moved)
+
+        # Disconnect in the middle of a featherfall: the landing stands.
+        warp(a, 20, 8)
+        ready(a)
+        pc.use_skill(a.m, FEATHERFALL, 'down')
+        time.sleep(0.05)
+        a.disconnect()
+        time.sleep(1.0)
+        a.connect()
+        check(a.pos == (20, 11), 'disconnecting mid-featherfall leaves the '
+              'player at the landing (%s)' % (a.pos,))
+
+        # Restart keeps learned traversal.
+        skills = dict(a.skills)
+        a.disconnect()
+        b.disconnect()
+        time.sleep(1)
+        check(world.stop(), 'server stops cleanly')
+        world.start()
+        a.connect()
+        check(a.skills == skills, 'traversal skills survive a restart')
+        a.disconnect()
+        time.sleep(1)
+        world.stop()
+    finally:
+        world.kill()
+
+
+def spark(build, keep=None):
+    world = World(build)
+    print('world: %s' % world.dir)
+    try:
+        world.start()
+        a = Player('aethyra-test', 'test-pass', name='Wanderer').connect()
+        b = Player('friend', 'friend-pass', name='Breezy', register=True).connect()
+        gm(a, '@killmonster2')
+        warp(a, 14, 15)
+
+        r = a.act(SPARK, 'right')
+        check(r and r['reason'] == NOT_LEARNED, 'Spark unknown at first')
+        gm(a, '@huegrant skill 6 1')
+        ready(a)
+        r = a.act(SPARK, 'right')
+        check(r and r['reason'] == NO_ACCESS,
+              'knowing Spark without Ember access is refused: %s' % summary(r))
+        gm(a, '@huegrant hue ember', wait=0.6)
+        ember = a.hue.get(EMBER, {})
+        check(ember.get('mastery') == 1 and ember.get('energy', 0) > 0,
+              'developer grant gives Ember access (%s)' % ember)
+
+        hop = spawn_at(a, HOPPER, 17, 15)
+        gm(a, '@hueseed 3')
+        ready(a)
+        e0, g0 = a.hue[EMBER]['energy'], a.hue[0]['energy']
+        a.mark()
+        r = a.act(SPARK, 'right', wait=0.8, target=hop)
+        check(r and r['outcome'] == SUCCEEDED and r['personal'] == 12 and
+              damage_to(a, hop)[:1] == [8],
+              'Spark hits the selected hopper for 8 fire damage: %s %s'
+              % (summary(r), damage_to(a, hop)))
+        check(a.hue[EMBER]['energy'] < e0 and a.hue[0]['energy'] >= g0,
+              'Spark draws Ember energy, not Gale')
+        burned = False
+        for _ in range(6):
+            if [x for x in a.got(0x019b)
+                    if struct.unpack_from('<II', x, 0) == (hop, 904)]:
+                burned = True
+                break
+            gm(a, '@hueset energy ember 999', wait=0.1)
+            time.sleep(1.2)
+            a.act(SPARK, 'right', wait=1.2, target=hop)
+            if hop not in a.beings:
+                break
+        ticks = [d for d in damage_to(a, hop) if d == 2]
+        check(burned and ticks, 'sometimes it burns: 2 damage per tick %s'
+              % damage_to(a, hop))
+
+        # Range and elevation. Gust blows a hopper out of reach (5 > 4) and
+        # staggers it, then Spark is refused.
+        gm(a, '@killmonster2')
+        far = spawn_at(a, HOPPER, 15, 15)
+        ready(a)
+        a.act(GUST, 'right', wait=0.3)
+        r = a.act(SPARK, 'right', target=far)
+        check(r and r['reason'] == NO_TARGET and r['detail'] == 4,
+              'out of range (5 > 4) is refused: %s' % summary(r))
+        warp(a, 20, 8)
+        below = spawn_at(a, HOPPER, 20, 11)
+        ready(a)
+        r = a.act(SPARK, 'down', target=below)
+        check(r and r['reason'] == NO_TARGET,
+              'no Spark across the cliff to another level: %s' % summary(r))
+
+        # Gust + Spark: the gust carries fire.
+        warp(a, 14, 15)
+        gm(a, '@killmonster2')
+        hop = spawn_at(a, HOPPER, 15, 15)
+        ready(a)
+        gm(a, '@hueset energy ember 999', wait=0.2)
+        e0, g0 = a.hue[EMBER]['energy'], a.hue[0]['energy']
+        b.mark()
+        a.mark()
+        r = a.act(GUST, 'right', wait=1.0, modifier=SPARK)
+        b.pump(0.3)
+        pushed = [sl for sl in a.slides() if sl[0] == hop]
+        check(r and r['outcome'] == SUCCEEDED and r['modifier'] == SPARK and
+              r['personal'] == 15 and r['mod_personal'] == 9 and pushed and
+              damage_to(a, hop)[:1] == [8],
+              'Gust + Spark pushes the hopper and burns it with fire: %s %s'
+              % (summary(r), damage_to(a, hop)))
+        check(a.hue[0]['energy'] < g0 and a.hue[EMBER]['energy'] < e0,
+              'each hue pays its own share (Gale %s -> %s, Ember %s -> %s)'
+              % (g0, a.hue[0]['energy'], e0, a.hue[EMBER]['energy']))
+        check(damage_to(b, hop)[:1] == [8],
+              'the second client sees the fire damage')
+        ready(a)
+        gm(a, '@hueset energy ember 999', wait=0.2)
+        hop = spawn_at(a, HOPPER, a.pos[0] + 1, a.pos[1])
+        pc.use_skill(a.m, GUST, 'right', modifier=SPARK)
+        r = a.act(SPARK, 'right', target=hop)
+        check(r and r['reason'] == COOLDOWN,
+              'the combination used Spark: it is recovering: %s' % summary(r))
+
+        r = a.act(DASH, 'right', modifier=SPARK)
+        check(r and r['reason'] == INCOMPATIBLE and r['detail'] == SPARK,
+              'Spark cannot modify Dash: %s' % summary(r))
+        ready(a)
+        gm(a, '@hueset energy ember 3')
+        r = a.act(GUST, 'right', modifier=SPARK)
+        check(r and r['reason'] == NO_ENERGY and r['skill'] == SPARK and
+              r['personal'] == 0,
+              'Gust + Spark with too little Ember names Spark and spends '
+              'nothing: %s' % summary(r))
+        r = b.act(GUST, 'right', modifier=SPARK)
+        check(r and r['reason'] == NOT_LEARNED and r['skill'] == SPARK,
+              'a player without Spark cannot add it: %s' % summary(r))
+
+        a.disconnect()
+        b.disconnect()
+        time.sleep(1)
+        world.stop()
+    finally:
+        world.kill()
+
+
+SCENARIOS = {'baseline': baseline, 'pass1': pass1, 'migration': migration,
+             'pass2': pass2, 'spark': spark}
 
 
 def main(argv):

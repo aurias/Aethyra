@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<effect>
+ <particle position-z="12" lifetime="6">
+  <emitter>
+   <property name="image" value="graphics/particles/flame.png"/>
+   <property name="output" value="6"/>
+   <property name="horizontal-angle" min="0" max="360"/>
+   <property name="vertical-angle" min="70" max="90"/>
+   <property name="power" min="0.5" max="1"/>
+   <property name="gravity" value="0"/>
+   <property name="lifetime" min="20" max="40"/>
+   <property name="fade-out" value="20"/>
+  </emitter>
+ </particle>
+</effect>

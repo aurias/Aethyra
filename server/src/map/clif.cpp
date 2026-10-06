@@ -4300,14 +4300,15 @@ static
 RecvResult clif_parse_AethyraHueAction(Session *s, dumb_ptr<map_session_data> sd)
 {
     Packet_Fixed<0x0218> fixed;
-    RecvResult rv = recv_fpacket<0x0218, 10>(s, fixed);
+    RecvResult rv = recv_fpacket<0x0218, 16>(s, fixed);
     if (rv != RecvResult::Complete)
         return rv;
 
     DIR dir;
     if (!aethyra_dir(fixed.client_dir, &dir))
         return rv;
-    hue_action(sd, fixed.skill, dir, fixed.flags, fixed.request);
+    hue_action(sd, fixed.skill, dir, fixed.flags, fixed.request, fixed.target,
+            fixed.modifier);
     return rv;
 }
 
@@ -6033,7 +6034,7 @@ func_table clif_parse_func_table[0x0220] =
     {0,     0,  nullptr,                        },  // 0x0215
     {0,     0,  nullptr,                        },  // 0x0216
     {0,     11, nullptr,                        },  // 0x0217
-    {-1,    10, clif_parse_AethyraHueAction,    },  // 0x0218
+    {-1,    16, clif_parse_AethyraHueAction,    },  // 0x0218
     {0,     VAR,nullptr,                        },  // 0x0219
     {0,     VAR,nullptr,                        },  // 0x021a
     {0,     VAR,nullptr,                        },  // 0x021b

@@ -4832,14 +4832,18 @@ def build_context():
             at(4, u8, 'client dir'),
             at(5, u8, 'flags'),
             at(6, u32, 'request'),
+            at(10, block_id, 'target'),
+            at(14, u16, 'modifier'),
         ],
-        fixed_size=10,
+        fixed_size=16,
         pre=[HUMAN],
         post=[0x0219, 0x0217, 0x019b, 0x021a, 0x021b, 0x021c],
         desc='''
             Use a learned hue skill facing the given direction (client
             direction bits). flags bit 0: accept overload risk. request is
             a client counter; the server ignores numbers it has seen.
+            target is the selected being (0: none). modifier is a skill
+            combined live with this one (0: none).
         ''',
     )
     map_user.s(0x0219, 'hue action result',
@@ -4857,8 +4861,12 @@ def build_context():
             at(18, u16, 'personal spent'),
             at(20, u16, 'vessel spent'),
             at(22, u16, 'detail'),
+            at(24, u16, 'modifier'),
+            at(26, u16, 'modifier personal'),
+            at(28, u16, 'modifier vessel'),
+            at(30, u16, 'modifier detail'),
         ],
-        head_size=24,
+        head_size=32,
         repeat=[
             at(0, ioff2, 'ioff2'),
             at(2, item_name_id, 'name id'),

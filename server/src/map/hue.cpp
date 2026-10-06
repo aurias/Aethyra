@@ -54,6 +54,7 @@
 #include "map.hpp"
 #include "mob.hpp"
 #include "pc.hpp"
+#include "terrain.hpp"
 
 #include "../poison.hpp"
 
@@ -315,6 +316,19 @@ void send_definitions(dumb_ptr<map_session_data> sd)
                     v.label.begin() + std::min<size_t>(v.label.size(), 79)));
         repeat.push_back(info);
     }
+    for (const HueCombo& c : hue_all_combos())
+    {
+        Packet_Repeat<0x021f> info;
+        info.kind = 2;
+        info.id = c.base;
+        info.p0 = c.modifier;
+        info.p1 = c.effect_pct;
+        info.p2 = c.energy_pct;
+        info.p3 = c.current_pct;
+        info.action = static_cast<uint8_t>(c.effect);
+        info.description = VString<79>(c.description);
+        repeat.push_back(info);
+    }
     send_vpacket<0x021f, 4, 136>(s, head, repeat);
 }
 
@@ -327,6 +341,8 @@ struct ResultInfo
     int energy = 0, current = 0, channel = 0;
     int personal_spent = 0, vessel_spent = 0;
     int detail = 0;
+    int modifier = 0, modifier_personal = 0, modifier_vessel = 0;
+    int modifier_detail = 0;
 };
 
 struct VesselReport
@@ -355,6 +371,10 @@ void send_result(dumb_ptr<map_session_data> sd, const ResultInfo& r,
     head.personal_spent = clamp(r.personal_spent, 0, 0xffff);
     head.vessel_spent = clamp(r.vessel_spent, 0, 0xffff);
     head.detail = clamp(r.detail, 0, 0xffff);
+    head.modifier = r.modifier;
+    head.modifier_personal = clamp(r.modifier_personal, 0, 0xffff);
+    head.modifier_vessel = clamp(r.modifier_vessel, 0, 0xffff);
+    head.modifier_detail = clamp(r.modifier_detail, 0, 0xffff);
     std::vector<Packet_Repeat<0x0219>> repeat;
     for (const VesselReport& v : vessels)
     {
@@ -367,7 +387,7 @@ void send_result(dumb_ptr<map_session_data> sd, const ResultInfo& r,
         info.load_pct = clamp(v.load_pct, 0, 0xffff);
         repeat.push_back(info);
     }
-    send_vpacket<0x0219, 24, 11>(s, head, repeat);
+    send_vpacket<0x0219, 32, 11>(s, head, repeat);
 }
 
 void reject(dumb_ptr<map_session_data> sd, ResultInfo r, HueReason reason,
@@ -385,26 +405,6 @@ void reject(dumb_ptr<map_session_data> sd, ResultInfo r, HueReason reason,
 int sign(int v)
 {
     return (v > 0) - (v < 0);
-}
-
-bool can_stand(Borrowed<map_local> m, int x, int y)
-{
-    return 0 <= x && x < m->xs && 0 <= y && y < m->ys
-        && !bool(read_gatp(m, x, y) & MapCell::UNWALKABLE);
-}
-
-/// Furthest standable tile up to range steps from (x, y) along (dx, dy).
-/// Returns the number of steps taken.
-int travel(Borrowed<map_local> m, int& x, int& y, int dx, int dy, int range)
-{
-    int steps = 0;
-    while (steps < range && (dx || dy) && can_stand(m, x + dx, y + dy))
-    {
-        x += dx;
-        y += dy;
-        steps++;
-    }
-    return steps;
 }
 
 void place(dumb_ptr<block_list> bl, int x, int y)
@@ -433,13 +433,58 @@ bool in_front(int px, int py, int dx, int dy, int x, int y, int radius)
     return rx * dx + ry * dy > 0;
 }
 
+/// Whether a being other than self stands on (x, y).
+bool occupied(Borrowed<map_local> m, int x, int y, dumb_ptr<block_list> self)
+{
+    bool found = false;
+    map_foreachinarea([&found, self](dumb_ptr<block_list> bl)
+            {
+                if (bl == self)
+                    return;
+                if (dumb_ptr<mob_data> md = bl->is_mob())
+                {
+                    if (md->hp > 0)
+                        found = true;
+                }
+                else if (bl->bl_type == BL::PC || bl->bl_type == BL::NPC)
+                    found = true;
+            },
+            m, x, y, x, y, BL::NUL);
+    return found;
+}
+
+/// Furthest point up to range ground steps from (x, y) along (dx, dy).
+/// Returns the number of steps taken.
+int ground_travel(Borrowed<map_local> m, int& x, int& y, int dx, int dy,
+        int range)
+{
+    int steps = 0;
+    while (steps < range && (dx || dy) && terrain_ground_step(m, x, y, dx, dy))
+    {
+        x += dx;
+        y += dy;
+        steps++;
+    }
+    return steps;
+}
+
+struct GustHit
+{
+    BlockId id;
+    bool fell;
+};
+
 void gust_push(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd,
-        int dx, int dy, const HueSkillRank *def, tick_t tick, int *pushed)
+        int dx, int dy, const HueSkillRank *def, tick_t tick,
+        std::vector<GustHit> *hits)
 {
     dumb_ptr<mob_data> md = bl->is_mob();
     if (!md || md->hp <= 0 || is_vegetation(md))
         return;
     if (!in_front(sd->bl_x, sd->bl_y, dx, dy, md->bl_x, md->bl_y, def->p1))
+        return;
+    // Wind does not blow through a cliff: only beings on the caster's level.
+    if (!terrain_same_level(sd->bl_m, sd->bl_x, sd->bl_y, md->bl_x, md->bl_y))
         return;
 
     // Away from the caster; straight ahead if standing on the same tile.
@@ -450,9 +495,26 @@ void gust_push(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd,
         py = dy;
     }
     int x = md->bl_x, y = md->bl_y;
-    travel(md->bl_m, x, y, px, py, def->p2);
+    int pushed = ground_travel(md->bl_m, x, y, px, py, def->p2);
+    bool fell = false;
+    if (pushed < def->p2)
+    {
+        // Blown against a ledge with push to spare: over it, if a free
+        // landing lies below within reach. Otherwise it stops at the edge.
+        Leap leap = terrain_leap(md->bl_m, x, y, px, py, -1,
+                hue_balance.ledge_fall_max_levels,
+                hue_balance.ledge_fall_max_span);
+        if (leap.result == LeapResult::OK
+                && !occupied(md->bl_m, leap.x, leap.y, md))
+        {
+            x = leap.x;
+            y = leap.y;
+            fell = true;
+        }
+    }
 
-    interval_t stagger = std::chrono::milliseconds(def->p3);
+    interval_t stagger = std::chrono::milliseconds(def->p3
+            + (fell ? hue_balance.fall_stagger_ms : 0));
     mob_stop_walking(md, 0);
     md->canmove_tick = tick + stagger;
     md->attackabletime = tick + stagger;
@@ -461,8 +523,19 @@ void gust_push(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd,
         place(md, x, y);
         md->to_x = x;
         md->to_y = y;
-        clif_aethyra_slide(md, 1);
-        (*pushed)++;
+        clif_aethyra_slide(md, fell ? 4 : 1);
+        hits->push_back({md->bl_id, fell});
+        // Gust itself never harms; a fall may, if the policy says so.
+        if (fell && hue_balance.fall_damage_pct > 0)
+        {
+            int damage = md->stats[mob_stat::MAX_HP] * hue_balance.fall_damage_pct / 100;
+            if (damage > 0)
+            {
+                clif_damage(md, md, tick, interval_t::zero(), interval_t::zero(),
+                        damage, 0, DamageType::NORMAL);
+                mob_damage(nullptr, md, damage, 0);
+            }
+        }
     }
 }
 
@@ -486,6 +559,9 @@ int effect_of(HueActionKind kind)
     case HueActionKind::DASH: return 900;
     case HueActionKind::GUST: return 901;
     case HueActionKind::SCYTHE: return 902;
+    case HueActionKind::FEATHERFALL: return 906;
+    case HueActionKind::JUMP: return 907;
+    case HueActionKind::SPARK: return 903;
     default: return 0;
     }
 }
@@ -734,10 +810,17 @@ void regen_timer(TimerData *, tick_t)
 }
 } // anonymous namespace
 
+namespace
+{
+void burn_timer(TimerData *, tick_t tick);
+} // anonymous namespace
+
 void do_init_hue()
 {
     interval_t every = std::chrono::milliseconds(hue_balance.regen_interval_ms);
     Timer(gettick() + every, regen_timer, every).detach();
+    interval_t burn = std::chrono::milliseconds(std::max(hue_balance.burn_tick_ms, 100));
+    Timer(gettick() + burn, burn_timer, burn).detach();
 }
 
 int hue_restore(dumb_ptr<map_session_data> sd, Hue hue, int amount)
@@ -766,80 +849,61 @@ struct Source
     int current = 0;        // current this source delivers
     int energy = 0;         // energy this source supplies
 };
-} // anonymous namespace
 
-void hue_action(dumb_ptr<map_session_data> sd, int skill, DIR dir,
-        uint8_t flags, uint32_t request)
+/// One hue's share of an action: the base skill, or a live modifier.
+struct Part
 {
-    nullpo_retv(sd);
-    if (request && request <= sd->hue.last_request)
-        return;     // a repeated request: already resolved once
-    if (request)
-        sd->hue.last_request = request;
+    int skill = 0;
+    const HueSkillRank *def = nullptr;
+    Hue hue = Hue::GALE;
+    int E = 0, I = 0;               // demand
+    std::vector<Source> sources;    // [0] is the personal reserve
+    int safe_channel = 0;
+    int worst = 0;                  // worst vessel load, percent
+    bool risky = false;
+    std::vector<bool> destroyed;
+    int personal_spent = 0, vessel_spent = 0;
+};
 
-    ResultInfo res;
-    res.request = request;
-    res.skill = skill;
-
-    // 1. Validate. Nothing is spent on any rejection below.
-    if (!hue_skill_max_rank(skill))
-        return reject(sd, res, HueReason::UNKNOWN_SKILL, 0);
-    int rank = learned_rank(sd, skill);
-    const HueSkillRank *def = hue_skill_rank(skill, rank);
-    if (!def)
-        return reject(sd, res, HueReason::NOT_LEARNED, 0);
-    res.energy = def->energy;
-    res.current = def->current;
-    if (def->kind == HueActionKind::FLOW)
-        return reject(sd, res, HueReason::PERMANENT, 0);
-    HueRecord& h = record_of(sd, def->hue);
+/// Steps 1 (hue, cooldown, allowance) and 2-3 (supply, energy, current)
+/// for one part. Returns OK or why it cannot go ahead; detail explains.
+HueReason plan_part(dumb_ptr<map_session_data> sd, Part& part, tick_t tick,
+        int activations_before, uint8_t flags, int *detail)
+{
+    const HueSkillRank *def = part.def;
+    HueRecord& h = record_of(sd, part.hue);
     if (!h.access)
-        return reject(sd, res, HueReason::NO_ACCESS, 0);
-    if (pc_isdead(sd))
-        return reject(sd, res, HueReason::DEAD, 0);
-
-    tick_t tick = gettick();
-    if (tick < sd->hue.ready[skill])
-        return reject(sd, res, HueReason::COOLDOWN,
-                (sd->hue.ready[skill] - tick).count());
-    prune_activations(sd, tick);
+        return HueReason::NO_ACCESS;
+    if (tick < sd->hue.ready[part.skill])
+    {
+        *detail = (sd->hue.ready[part.skill] - tick).count();
+        return HueReason::COOLDOWN;
+    }
     const HueMasteryRow& row = hue_mastery_row(h.mastery);
-    res.channel = row.current;
-    if (active_count(sd, def->hue) >= row.allowance)
+    if (active_count(sd, part.hue) >= row.allowance)
     {
-        int holder = 0;
         for (const auto& a : sd->hue.active)
-            if (a.hue == static_cast<uint8_t>(def->hue))
-                holder = a.skill;
-        return reject(sd, res, HueReason::ALLOWANCE, holder);
+            if (a.hue == static_cast<uint8_t>(part.hue))
+                *detail = a.skill;
+        return HueReason::ALLOWANCE;
     }
-    if (int(sd->hue.active.size()) >= hue_balance.activation_ceiling)
-        return reject(sd, res, HueReason::CEILING, sd->hue.active.back().skill);
-
-    int dx = dirx[dir], dy = diry[dir];
-    int dash_x = sd->bl_x, dash_y = sd->bl_y, dash_steps = 0;
-    if (def->kind == HueActionKind::DASH)
+    if (activations_before >= hue_balance.activation_ceiling)
     {
-        dash_steps = travel(sd->bl_m, dash_x, dash_y, dx, dy, def->p1);
-        if (!dash_steps)
-        {
-            pc_setdir(sd, dir);
-            return reject(sd, res, HueReason::BLOCKED, 0);
-        }
+        *detail = sd->hue.active.empty() ? part.skill : sd->hue.active.back().skill;
+        return HueReason::CEILING;
     }
 
-    // 2. Plan the supply: own reserve first, then selected stacks in order.
-    const int E = def->energy, I = def->current;
-    std::vector<Source> sources;
+    // Own reserve first, then the selected stacks of this hue in order.
+    const int E = part.E, I = part.I;
     {
         Source own;
         own.available = h.energy;
         own.safe = row.current;
-        own.current = std::min<int64_t>({I, row.current, own.available * I / E});
-        sources.push_back(own);
+        own.current = std::min<int64_t>({I, row.current, own.available * I / std::max(E, 1)});
+        part.sources.push_back(own);
     }
-    int flow = flow_pct(sd, def->hue);
-    int remaining = I - sources[0].current;
+    int flow = flow_pct(sd, part.hue);
+    int remaining = I - part.sources[0].current;
     for (int k = 0; k < MAX_HUE_SUPPLY; ++k)
     {
         int16_t slot = sd->status.hue.supply[k];
@@ -847,64 +911,73 @@ void hue_action(dumb_ptr<map_session_data> sd, int skill, DIR dir,
             continue;
         IOff0 i = IOff0::from(slot - 1);
         const HueVesselDef *v = vessel_at(sd, i);
-        if (!v || v->hue != def->hue)
+        if (!v || v->hue != part.hue)
             continue;
         Source src;
         src.index = i;
         src.vessel = v;
         src.available = lot_energy(sd->status.inventory[i]);
         src.safe = v->safe_current * (100 + flow) / 100;
-        src.current = std::min<int64_t>({remaining, src.safe, src.available * I / E});
+        src.current = std::min<int64_t>({remaining, src.safe,
+                src.available * I / std::max(E, 1)});
         remaining -= src.current;
-        sources.push_back(src);
+        part.sources.push_back(src);
     }
 
-    // 3. Energy, then current.
     int64_t total = 0;
-    for (const Source& src : sources)
+    for (const Source& src : part.sources)
         total += src.available;
     if (total < E)
-        return reject(sd, res, HueReason::NO_ENERGY, int(std::min<int64_t>(total, 0xffff)));
+    {
+        *detail = int(std::min<int64_t>(total, 0xffff));
+        return HueReason::NO_ENERGY;
+    }
+    for (const Source& src : part.sources)
+        part.safe_channel += src.safe;
 
-    int safe_channel = 0;
-    for (const Source& src : sources)
-        safe_channel += src.safe;
-    res.channel = safe_channel;
-
-    bool risky = false;
-    int worst = 0;
     if (remaining > 0)
     {
         // Only by pushing vessel stacks past their safe current.
-        for (size_t k = 1; k < sources.size() && remaining > 0; ++k)
+        for (size_t k = 1; k < part.sources.size() && remaining > 0; ++k)
         {
-            Source& src = sources[k];
-            int room = int(std::min<int64_t>(src.available * I / E, 0xffff)) - src.current;
+            Source& src = part.sources[k];
+            int room = int(std::min<int64_t>(src.available * I / std::max(E, 1), 0xffff))
+                - src.current;
             int extra = std::max(0, std::min(remaining, room));
             src.current += extra;
             remaining -= extra;
         }
         if (remaining > 0)
-            return reject(sd, res, HueReason::CURRENT_LIMITED, safe_channel);
-        for (size_t k = 1; k < sources.size(); ++k)
-            if (sources[k].current > sources[k].safe)
-                worst = std::max(worst, sources[k].current * 100 / sources[k].safe);
-        if (worst > hue_balance.overload_max_ratio_pct)
-            return reject(sd, res, HueReason::OVERLOAD_LIMIT, worst);
+        {
+            *detail = part.safe_channel;
+            return HueReason::CURRENT_LIMITED;
+        }
+        for (size_t k = 1; k < part.sources.size(); ++k)
+            if (part.sources[k].current > part.sources[k].safe)
+                part.worst = std::max(part.worst,
+                        part.sources[k].current * 100 / part.sources[k].safe);
+        if (part.worst > hue_balance.overload_max_ratio_pct)
+        {
+            *detail = part.worst;
+            return HueReason::OVERLOAD_LIMIT;
+        }
         if (!(flags & HUE_ACCEPT_RISK))
-            return reject(sd, res, HueReason::OVERLOAD_RISK, worst);
-        risky = true;
+        {
+            *detail = part.worst;
+            return HueReason::OVERLOAD_RISK;
+        }
+        part.risky = true;
     }
 
-    // Energy drawn follows each source's share of the current; rounding
+    // Energy follows each source's share of the current; rounding
     // leftovers go to whichever sources still hold energy.
     int drawn = 0;
-    for (Source& src : sources)
+    for (Source& src : part.sources)
     {
-        src.energy = src.current * E / I;
+        src.energy = I ? src.current * E / I : 0;
         drawn += src.energy;
     }
-    for (Source& src : sources)
+    for (Source& src : part.sources)
     {
         int extra = int(std::min<int64_t>(E - drawn, src.available - src.energy));
         if (extra > 0)
@@ -913,81 +986,53 @@ void hue_action(dumb_ptr<map_session_data> sd, int skill, DIR dir,
             drawn += extra;
         }
     }
+    part.destroyed.assign(part.sources.size(), false);
+    return HueReason::OK;
+}
 
-    // 4. Roll. Success and stack survival are separate outcomes.
-    bool success = true;
-    std::vector<bool> destroyed(sources.size(), false);
-    if (risky)
+/// Step 4 for one part: roll success and each overloaded stack's fate.
+bool roll_part(dumb_ptr<map_session_data> sd, Part& part)
+{
+    if (!part.risky)
+        return true;
+    int m = record_of(sd, part.hue).mastery;
+    int p_success = clamp(hue_balance.success_base_pct
+            - hue_balance.success_slope_pct * (part.worst - 100) / 100
+            + hue_balance.success_mastery_pct * m, 2, 100);
+    bool success = sd->hue.forced >= 0 ? bool(sd->hue.forced & 1)
+        : roll(sd, p_success);
+    for (size_t k = 1; k < part.sources.size(); ++k)
     {
-        int m = h.mastery;
-        int p_success = clamp(hue_balance.success_base_pct
-                - hue_balance.success_slope_pct * (worst - 100) / 100
-                + hue_balance.success_mastery_pct * m, 2, 100);
-        success = sd->hue.forced >= 0 ? bool(sd->hue.forced & 1)
-            : roll(sd, p_success);
-        for (size_t k = 1; k < sources.size(); ++k)
-        {
-            const Source& src = sources[k];
-            if (src.current <= src.safe)
-                continue;
-            int load = src.current * 100 / src.safe;
-            int p_destroy = clamp(hue_balance.destroy_base_pct
-                    + hue_balance.destroy_slope_pct * (load - 100) / 100
-                    - hue_balance.destroy_mastery_pct * m, 0, 98);
-            destroyed[k] = sd->hue.forced >= 0 ? bool(sd->hue.forced & 2)
-                : roll(sd, p_destroy);
-            debug(sd, STRPRINTF("[hue] stack %d load %d%%: destroy chance %d%% -> %s"_fmt,
-                        src.index.index, load, p_destroy,
-                        destroyed[k] ? "destroyed"_s : "survives"_s));
-        }
-        debug(sd, STRPRINTF("[hue] worst load %d%%: success chance %d%% -> %s%s"_fmt,
-                    worst, p_success, success ? "success"_s : "failure"_s,
-                    sd->hue.forced >= 0 ? " (forced)"_s : ""_s));
+        const Source& src = part.sources[k];
+        if (src.current <= src.safe)
+            continue;
+        int load = src.current * 100 / src.safe;
+        int p_destroy = clamp(hue_balance.destroy_base_pct
+                + hue_balance.destroy_slope_pct * (load - 100) / 100
+                - hue_balance.destroy_mastery_pct * m, 0, 98);
+        part.destroyed[k] = sd->hue.forced >= 0 ? bool(sd->hue.forced & 2)
+            : roll(sd, p_destroy);
+        debug(sd, STRPRINTF("[hue] stack %d load %d%%: destroy chance %d%% -> %s"_fmt,
+                    src.index.index, load, p_destroy,
+                    part.destroyed[k] ? "destroyed"_s : "survives"_s));
     }
+    debug(sd, STRPRINTF("[hue] %s worst load %d%%: success chance %d%% -> %s%s"_fmt,
+                part.def->name, part.worst, p_success,
+                success ? "success"_s : "failure"_s,
+                sd->hue.forced >= 0 ? " (forced)"_s : ""_s));
+    return success;
+}
 
-    // 5. Commit.
-    pc_setdir(sd, dir);
-    int units = 0;
-    if (success)
+/// Step 5 for one part's supply: spend, wear and destroy.
+void commit_part(dumb_ptr<map_session_data> sd, Part& part,
+        std::vector<VesselReport> *reports)
+{
+    HueRecord& h = record_of(sd, part.hue);
+    h.energy -= part.sources[0].energy;
+    part.personal_spent = part.sources[0].energy;
+    for (size_t k = 1; k < part.sources.size(); ++k)
     {
-        switch (def->kind)
-        {
-        case HueActionKind::DASH:
-            pc_stop_walking(sd, 0);
-            place(sd, dash_x, dash_y);
-            sd->to_x = dash_x;
-            sd->to_y = dash_y;
-            clif_aethyra_slide(sd, 0);
-            units = std::max(0, dash_steps - 2);
-            break;
-        case HueActionKind::GUST:
-        {
-            int x0 = sd->bl_x, y0 = sd->bl_y, r = def->p1;
-            map_foreachinarea(std::bind(gust_push, std::placeholders::_1, sd,
-                        dx, dy, def, tick, &units),
-                    sd->bl_m, x0 - r, y0 - r, x0 + r, y0 + r, BL::MOB);
-            break;
-        }
-        case HueActionKind::SCYTHE:
-        {
-            int x0 = sd->bl_x, y0 = sd->bl_y, r = def->p1;
-            map_foreachinarea(std::bind(scythe_cut, std::placeholders::_1, sd,
-                        dx, dy, r, &units),
-                    sd->bl_m, x0 - r, y0 - r, x0 + r, y0 + r, BL::MOB);
-            break;
-        }
-        default:
-            break;
-        }
-        clif_specialeffect(sd, effect_of(def->kind), 0);
-    }
-
-    h.energy -= sources[0].energy;
-    res.personal_spent = sources[0].energy;
-    std::vector<VesselReport> reports;
-    for (size_t k = 1; k < sources.size(); ++k)
-    {
-        Source& src = sources[k];
+        Source& src = part.sources[k];
         if (!src.current && !src.energy)
             continue;
         Item& item = sd->status.inventory[src.index];
@@ -998,21 +1043,21 @@ void hue_action(dumb_ptr<map_session_data> sd, int skill, DIR dir,
         rep.spent = src.energy;
         rep.load_pct = src.current * 100 / src.safe;
         rep.fate = VesselFate::SAFE;
-        res.vessel_spent += src.energy;
+        part.vessel_spent += src.energy;
         // Every unit of the stack shares the draw.
         uint32_t per_unit = uint32_t((int64_t(src.energy) * 1000 + item.amount - 1)
                 / item.amount);
         item.hue_charge -= std::min(item.hue_charge, per_unit);
-        if (src.current > src.safe && !destroyed[k])
+        if (src.current > src.safe && !part.destroyed[k])
         {
             int wear = std::max(1, hue_balance.overload_wear * (rep.load_pct - 100) / 100);
             rep.fate = VesselFate::STRAINED;
             if (item.condition <= wear)
-                destroyed[k] = true;
+                part.destroyed[k] = true;
             else
                 item.condition -= wear;
         }
-        if (destroyed[k])
+        if (part.destroyed[k])
         {
             // The whole participating stack disintegrates; what it still
             // held is lost with it. Other stacks are untouched.
@@ -1021,28 +1066,410 @@ void hue_action(dumb_ptr<map_session_data> sd, int skill, DIR dir,
         }
         else
             hue_send_lot(sd, src.index);
-        reports.push_back(rep);
+        reports->push_back(rep);
+    }
+}
+
+HueReason leap_reason(LeapResult r)
+{
+    switch (r)
+    {
+    case LeapResult::NOT_AT_EDGE: return HueReason::NOT_AT_EDGE;
+    case LeapResult::TOO_FAR: return HueReason::TOO_FAR;
+    case LeapResult::NO_LANDING: return HueReason::NO_LANDING;
+    case LeapResult::OBSTRUCTED: return HueReason::OBSTRUCTED;
+    case LeapResult::WRONG_WAY: return HueReason::WRONG_WAY;
+    case LeapResult::TOO_HIGH: return HueReason::TOO_HIGH;
+    default: return HueReason::OK;
+    }
+}
+
+bool spark_target_ok(dumb_ptr<map_session_data> sd, dumb_ptr<mob_data> md,
+        int range)
+{
+    if (!md || md->hp <= 0 || is_vegetation(md) || md->bl_m != sd->bl_m)
+        return false;
+    int dist = std::max(std::abs(md->bl_x - sd->bl_x),
+            std::abs(md->bl_y - sd->bl_y));
+    return dist <= range && terrain_same_level(sd->bl_m, sd->bl_x, sd->bl_y,
+            md->bl_x, md->bl_y);
+}
+
+/// The player's selected target, or else the nearest enemy in front.
+dumb_ptr<mob_data> spark_target(dumb_ptr<map_session_data> sd,
+        BlockId target, int dx, int dy, int range)
+{
+    if (target)
+    {
+        dumb_ptr<block_list> bl = map_id2bl(target);
+        dumb_ptr<mob_data> md = bl ? bl->is_mob() : nullptr;
+        return spark_target_ok(sd, md, range) ? md : nullptr;
+    }
+    dumb_ptr<mob_data> best;
+    int best_dist = range + 1;
+    map_foreachinarea([&](dumb_ptr<block_list> bl)
+            {
+                dumb_ptr<mob_data> md = bl->is_mob();
+                if (!spark_target_ok(sd, md, range)
+                        || !in_front(sd->bl_x, sd->bl_y, dx, dy,
+                            md->bl_x, md->bl_y, range))
+                    return;
+                int dist = std::max(std::abs(md->bl_x - sd->bl_x),
+                        std::abs(md->bl_y - sd->bl_y));
+                if (dist < best_dist)
+                {
+                    best = md;
+                    best_dist = dist;
+                }
+            },
+            sd->bl_m, sd->bl_x - range, sd->bl_y - range,
+            sd->bl_x + range, sd->bl_y + range, BL::MOB);
+    return best;
+}
+
+// Burning enemies. A new burn on a burning enemy restarts it.
+struct Burn
+{
+    BlockId mob, owner;
+    int ticks, damage;
+};
+std::vector<Burn> burns;
+
+/// Fire damage, and a chance to set the enemy burning. Returns whether
+/// it now burns.
+bool ignite(dumb_ptr<map_session_data> sd, dumb_ptr<mob_data> md, int damage,
+        int burn_pct, tick_t tick)
+{
+    BlockId id = md->bl_id;
+    clif_specialeffect(md, 903, 0);
+    if (damage > 0)
+    {
+        clif_damage(sd, md, tick, interval_t::zero(), interval_t::zero(),
+                damage, 0, DamageType::NORMAL);
+        mob_damage(sd, md, damage, 0);
+    }
+    // mob_damage may have killed it.
+    dumb_ptr<block_list> bl = map_id2bl(id);
+    if (!bl || !bl->is_mob() || bl->is_mob()->hp <= 0)
+        return false;
+    if (!roll(sd, burn_pct))
+        return false;
+    for (Burn& b : burns)
+    {
+        if (b.mob == id)
+        {
+            b.ticks = hue_balance.burn_ticks;
+            b.owner = sd->bl_id;
+            return true;
+        }
+    }
+    burns.push_back({id, sd->bl_id, hue_balance.burn_ticks,
+            hue_balance.burn_tick_damage});
+    return true;
+}
+
+void burn_timer(TimerData *, tick_t tick)
+{
+    std::vector<Burn> still;
+    for (Burn b : burns)
+    {
+        dumb_ptr<block_list> bl = map_id2bl(b.mob);
+        dumb_ptr<mob_data> md = bl ? bl->is_mob() : nullptr;
+        if (!md || md->hp <= 0)
+            continue;
+        dumb_ptr<map_session_data> owner = map_id2sd(b.owner);
+        clif_specialeffect(md, 904, 0);
+        clif_damage(owner ? dumb_ptr<block_list>(owner) : dumb_ptr<block_list>(md),
+                md, tick, interval_t::zero(), interval_t::zero(), b.damage, 0,
+                DamageType::NORMAL);
+        mob_damage(owner, md, b.damage, 0);
+        if (--b.ticks > 0)
+            still.push_back(b);
+    }
+    burns = std::move(still);
+}
+} // anonymous namespace
+
+void hue_action(dumb_ptr<map_session_data> sd, int skill, DIR dir,
+        uint8_t flags, uint32_t request, BlockId target, int modifier)
+{
+    nullpo_retv(sd);
+    if (request && request <= sd->hue.last_request)
+        return;     // a repeated request: already resolved once
+    if (request)
+        sd->hue.last_request = request;
+
+    ResultInfo res;
+    res.request = request;
+    res.skill = skill;
+    res.modifier = modifier;
+
+    // 1. Validate. Nothing is spent on any rejection below.
+    if (!hue_skill_max_rank(skill))
+        return reject(sd, res, HueReason::UNKNOWN_SKILL, 0);
+    const HueSkillRank *def = hue_skill_rank(skill, learned_rank(sd, skill));
+    if (!def)
+        return reject(sd, res, HueReason::NOT_LEARNED, 0);
+    res.energy = def->energy;
+    res.current = def->current;
+    if (def->kind == HueActionKind::FLOW)
+        return reject(sd, res, HueReason::PERMANENT, 0);
+    if (pc_isdead(sd))
+        return reject(sd, res, HueReason::DEAD, 0);
+
+    std::vector<Part> parts(1);
+    parts[0].skill = skill;
+    parts[0].def = def;
+    parts[0].hue = def->hue;
+    parts[0].E = def->energy;
+    parts[0].I = def->current;
+
+    const HueCombo *combo = nullptr;
+    if (modifier)
+    {
+        combo = hue_combo(skill, modifier);
+        if (!combo)
+            return reject(sd, res, HueReason::INCOMPATIBLE, modifier);
+        const HueSkillRank *mod = hue_skill_rank(modifier,
+                learned_rank(sd, modifier));
+        if (!mod)
+        {
+            res.skill = modifier;
+            return reject(sd, res, HueReason::NOT_LEARNED, 0);
+        }
+        Part part;
+        part.skill = modifier;
+        part.def = mod;
+        part.hue = mod->hue;
+        part.E = mod->energy * combo->energy_pct / 100;
+        part.I = std::max(1, mod->current * combo->current_pct / 100);
+        parts.push_back(part);
     }
 
-    sd->hue.active.push_back({tick + std::chrono::milliseconds(def->exec_ms),
-            static_cast<uint16_t>(skill), static_cast<uint8_t>(def->hue)});
-    sd->hue.ready[skill] = tick + std::chrono::milliseconds(def->cooldown_ms);
+    tick_t tick = gettick();
+    prune_activations(sd, tick);
+    for (size_t k = 0; k < parts.size(); ++k)
+    {
+        int detail = 0;
+        HueReason why = plan_part(sd, parts[k], tick,
+                int(sd->hue.active.size() + k), flags, &detail);
+        if (why != HueReason::OK)
+        {
+            // Name the part that is short: the modifier's own hue may be.
+            res.skill = parts[k].skill;
+            res.energy = parts[k].E;
+            res.current = parts[k].I;
+            res.channel = parts[k].safe_channel
+                ? parts[k].safe_channel
+                : hue_mastery_row(record_of(sd, parts[k].hue).mastery).current;
+            return reject(sd, res, why, detail);
+        }
+    }
+    res.channel = parts[0].safe_channel;
+
+    // Targets and landings, also before anything is spent.
+    int dx = dirx[dir], dy = diry[dir];
+    int to_x = sd->bl_x, to_y = sd->bl_y, steps = 0;
+    dumb_ptr<mob_data> spark;
+    switch (def->kind)
+    {
+    case HueActionKind::DASH:
+        steps = ground_travel(sd->bl_m, to_x, to_y, dx, dy, def->p1);
+        if (!steps)
+        {
+            pc_setdir(sd, dir);
+            return reject(sd, res, HueReason::BLOCKED, 0);
+        }
+        break;
+    case HueActionKind::FEATHERFALL:
+    case HueActionKind::JUMP:
+    {
+        int way = def->kind == HueActionKind::JUMP ? 1 : -1;
+        Leap leap = terrain_leap(sd->bl_m, sd->bl_x, sd->bl_y, dx, dy, way,
+                def->p1, def->p2);
+        pc_setdir(sd, dir);
+        if (leap.result != LeapResult::OK)
+        {
+            int detail = leap.result == LeapResult::TOO_HIGH ? std::abs(leap.levels)
+                : leap.result == LeapResult::TOO_FAR ? leap.span
+                : leap.result == LeapResult::WRONG_WAY ? (leap.levels > 0 ? 1 : 2)
+                : 0;
+            return reject(sd, res, leap_reason(leap.result), detail);
+        }
+        if (occupied(sd->bl_m, leap.x, leap.y, sd))
+            return reject(sd, res, HueReason::LANDING_OCCUPIED, 0);
+        to_x = leap.x;
+        to_y = leap.y;
+        break;
+    }
+    case HueActionKind::SPARK:
+        spark = spark_target(sd, target, dx, dy, def->p1);
+        if (!spark)
+            return reject(sd, res, HueReason::NO_TARGET, def->p1);
+        break;
+    default:
+        break;
+    }
+
+    // 4. Roll each part. Any part failing makes the whole action fizzle.
+    bool success = true;
+    for (Part& part : parts)
+        success = roll_part(sd, part) && success;
+
+    // 5. Commit: effects, then spending, wear and destruction.
+    if (def->kind == HueActionKind::SPARK)
+    {
+        int dxs = sign(spark->bl_x - sd->bl_x), dys = sign(spark->bl_y - sd->bl_y);
+        if (dxs || dys)
+            dir = (dxs > 0) ? (dys > 0 ? DIR::SE : dys < 0 ? DIR::NE : DIR::E)
+                : (dxs < 0) ? (dys > 0 ? DIR::SW : dys < 0 ? DIR::NW : DIR::W)
+                : (dys > 0 ? DIR::S : DIR::N);
+    }
+    pc_setdir(sd, dir);
+    int units = 0, mod_units = 0;
+    if (success)
+    {
+        switch (def->kind)
+        {
+        case HueActionKind::DASH:
+        case HueActionKind::FEATHERFALL:
+        case HueActionKind::JUMP:
+            pc_stop_walking(sd, 0);
+            place(sd, to_x, to_y);
+            sd->to_x = to_x;
+            sd->to_y = to_y;
+            clif_aethyra_slide(sd, def->kind == HueActionKind::DASH ? 0
+                    : def->kind == HueActionKind::FEATHERFALL ? 2 : 3);
+            units = def->kind == HueActionKind::DASH ? std::max(0, steps - 2) : 1;
+            break;
+        case HueActionKind::GUST:
+        {
+            std::vector<GustHit> hits;
+            int x0 = sd->bl_x, y0 = sd->bl_y, r = def->p1;
+            map_foreachinarea(std::bind(gust_push, std::placeholders::_1, sd,
+                        dx, dy, def, tick, &hits),
+                    sd->bl_m, x0 - r, y0 - r, x0 + r, y0 + r, BL::MOB);
+            units = hits.size();
+            if (combo && combo->effect == HueComboEffect::IGNITE)
+            {
+                // The gust carries the spark: everyone it moved is hit.
+                const HueSkillRank *mod = parts[1].def;
+                for (const GustHit& hit : hits)
+                {
+                    dumb_ptr<block_list> bl = map_id2bl(hit.id);
+                    if (bl && bl->is_mob() && bl->is_mob()->hp > 0)
+                    {
+                        ignite(sd, bl->is_mob(), mod->p2 * combo->effect_pct / 100,
+                                mod->p3, tick);
+                        mod_units++;
+                    }
+                }
+            }
+            break;
+        }
+        case HueActionKind::SCYTHE:
+        {
+            int x0 = sd->bl_x, y0 = sd->bl_y, r = def->p1;
+            map_foreachinarea(std::bind(scythe_cut, std::placeholders::_1, sd,
+                        dx, dy, r, &units),
+                    sd->bl_m, x0 - r, y0 - r, x0 + r, y0 + r, BL::MOB);
+            break;
+        }
+        case HueActionKind::SPARK:
+            ignite(sd, spark, def->p2, def->p3, tick);
+            units = 1;
+            break;
+        default:
+            break;
+        }
+        clif_specialeffect(sd, effect_of(def->kind), 0);
+    }
+
+    std::vector<VesselReport> reports;
+    for (Part& part : parts)
+    {
+        commit_part(sd, part, &reports);
+        sd->hue.active.push_back({tick + std::chrono::milliseconds(part.def->exec_ms),
+                static_cast<uint16_t>(part.skill), static_cast<uint8_t>(part.hue)});
+        sd->hue.ready[part.skill] = tick
+            + std::chrono::milliseconds(part.def->cooldown_ms);
+    }
 
     if (success)
+    {
         award(sd, def, units, tick);
+        if (parts.size() > 1)
+            award(sd, parts[1].def, mod_units, tick);
+    }
 
     res.outcome = success ? HueOutcome::SUCCEEDED : HueOutcome::FAILED;
     res.reason = success ? HueReason::OK : HueReason::OVERLOAD_FAILED;
     res.detail = units;
+    res.personal_spent = parts[0].personal_spent;
+    res.vessel_spent = parts[0].vessel_spent;
+    if (parts.size() > 1)
+    {
+        res.modifier_personal = parts[1].personal_spent;
+        res.modifier_vessel = parts[1].vessel_spent;
+        res.modifier_detail = mod_units;
+    }
     send_result(sd, res, reports);
     send_state(sd);
-    if (success && units)
+    if (success && (units || mod_units))
         send_skills(sd);
 
-    debug(sd, STRPRINTF("[hue] %s r%d: demand %d energy at %d current; own %d "
-                "(channel %d), vessels %d; flow +%d%%"_fmt,
-                def->name, def->rank, E, I, sources[0].energy, row.current,
-                res.vessel_spent, flow));
+    AString extra;
+    if (parts.size() > 1)
+        extra = STRPRINTF("; + %s: %d own, %d vessels"_fmt, parts[1].def->name,
+                parts[1].personal_spent, parts[1].vessel_spent);
+    debug(sd, STRPRINTF("[hue] %s r%d: demand %d energy at %d current; own %d, "
+                "vessels %d%s"_fmt, def->name, def->rank, parts[0].E,
+                parts[0].I, parts[0].personal_spent, parts[0].vessel_spent,
+                extra));
+}
+
+bool hue_grant_access(dumb_ptr<map_session_data> sd, Hue hue)
+{
+    HueRecord& r = record_of(sd, hue);
+    if (r.access)
+        return false;
+    r.access = 1;
+    r.mastery = 1;
+    r.mastery_cap = 10;
+    r.mastery_xp = 0;
+    r.energy = capacity_of(r);
+    send_state(sd);
+    return true;
+}
+
+bool hue_grant_skill(dumb_ptr<map_session_data> sd, int skill, int rank)
+{
+    if (!hue_skill_rank(skill, rank))
+        return false;
+    HueSkillRecord *sk = skill_record(sd, skill);
+    if (!sk)
+    {
+        for (HueSkillRecord& empty : sd->status.hue.skills)
+        {
+            if (!empty.id)
+            {
+                sk = &empty;
+                break;
+            }
+        }
+        if (!sk)
+            return false;
+        sk->id = skill;
+        sk->rank = 0;
+        sk->proficiency = 0;
+    }
+    if (sk->rank >= rank)
+        return false;
+    sk->rank = rank;
+    const HueSkillRank *def = hue_skill_rank(skill, rank);
+    sk->proficiency = std::max<uint32_t>(sk->proficiency, def->req_prof);
+    send_skills(sd);
+    return true;
 }
 
 void hue_learn(dumb_ptr<map_session_data> sd, int skill)
