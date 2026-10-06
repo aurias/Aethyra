@@ -194,8 +194,8 @@ func _effect(kind: String, at: Vector2, dir := Vector2.ZERO, follow: BeingView =
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		var k: int = event.keycode
-		if hud.dialog.visible and k >= KEY_1 and k <= KEY_9:
-			hud.dialog_choose(k - KEY_1)
+		if hud.dialog.visible and ((k >= KEY_1 and k <= KEY_9) or k == KEY_SPACE):
+			hud.dialog_choose(0 if k == KEY_SPACE else k - KEY_1)
 			get_viewport().set_input_as_handled()
 			return
 		var slot := SKILL_KEYS.find(k)

@@ -206,7 +206,7 @@ func _build_toasts(root: Control) -> void:
 func _build_dialog(root: Control) -> void:
 	dialog = _panel(root)
 	_layout.append([dialog, Vector2(0.5, 1), Vector2(0, -110), Vector2(0.5, 1)])
-	dialog.custom_minimum_size = Vector2(660, 220)
+	dialog.custom_minimum_size = Vector2(660, 0)
 	dialog.visible = false
 	var v := VBoxContainer.new()
 	dialog.add_child(v)
@@ -268,6 +268,7 @@ func toggle(name: String) -> void:
 	var p: PanelContainer = windows[name].panel
 	p.visible = not p.visible
 	if p.visible:
+		help.visible = false
 		refresh_windows()
 
 

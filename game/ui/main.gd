@@ -77,6 +77,13 @@ func _run_script(text: String) -> void:
 				Input.parse_input_event(up)
 			"say":
 				Net.request({"t": "chat", "text": arg})
+			"talk":
+				if game:
+					for v in game.views.values():
+						if v.display_name.begins_with(arg):
+							Net.request({"t": "talk", "id": v.id})
+			"choose":
+				Net.request({"t": "choose", "index": int(arg)})
 			"click":
 				var a := arg.split(" ")
 				if game:

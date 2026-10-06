@@ -33,3 +33,11 @@ reversible test default, not established lore; see
 | 2026-10-06 | Live combinations come from a registry; the modifier pays its share from its own hue, holds its own activation and cooldown; any part failing to plan refuses the whole action; any part fizzling fizzles the whole | Framework §4.2; provisional | Pass 3 assemblies |
 | 2026-10-06 | monster_hp_rate set to 100 (the server default 0 gave monsters 1 HP) | Bug found in Pass 2 | — |
 | 2026-10-06 | Hosting a world refreshes its game content (conf, db, npc, data) from the running build's template, keeping save/ and the world's internal password; the server refuses to start without hue definitions | Bug: old worlds crashed the new server at login (SDLNet_TCP_Recv on the client) | Worlds with custom content |
+| 2026-10-06 | Replace the 2009 client and tmwAthena with a Godot 4.7 game in `game/`; the C++ build stays as the reference and fallback | User: "Godot 4 is fine"; crash reports on the legacy client | — |
+| 2026-10-06 | Listen server: the host's game runs the authoritative World; friends send requests over ENet (UDP 24680) and get events; every rule stays on the host | Parity report; `tests/net_test.sh` | Dedicated servers are needed |
+| 2026-10-06 | No accounts: a character is a name in a host's world, bound to the joining installation's token; JSON saves on the host | Parity report | Moving characters between PCs matters |
+| 2026-10-06 | Hue data files keep the server's formats and are copied into `game/data/hue`; `game/core` ports `hue.cpp`/`terrain.cpp` step for step, reason codes included | 108 headless checks | — |
+| 2026-10-06 | Whispers of Avalon (Leonard Pabin) under CC-BY 3.0; pieces cut by script from the published sheets; south cliff faces are two cells tall to fit the art | `art/whispers-of-avalon/CREDITS.md` | Commissioned art |
+| 2026-10-06 | Characters and creatures are drawn procedurally until sprites exist | The tileset has no characters | Character art arrives |
+| 2026-10-06 | Monster drops go straight to the killer's pack (no ground items yet) | Simplification for parity | Trading and ground items |
+| 2026-10-06 | Level 1 HP 60; hopper hits 2–5, sight 6; player hit 3–6 + level every 0.9 s; 5 s grace after waking | Provisional, from the first Godot playtest shots | Combat pass |

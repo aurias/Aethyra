@@ -56,3 +56,30 @@ Report: [pass-2-report.md](pass-2-report.md).
   homeland and vessels; saved assemblies and sustained effects (Pass 3);
   a modifier selector beyond the Y key.
 - **Blocked:** nothing.
+
+## Godot parity pass (6 Oct 2026)
+
+Report: [godot-parity-report.md](godot-parity-report.md). The game now
+lives in `game/` (Godot 4.7). The C++ client and server are kept as the
+reference build.
+
+- **Tested:**
+  - Every Pass 1 and Pass 2 rule, ported and rechecked headless: hue
+    records, resolver, vessels, overload, learning, terrain and leaps, ledge
+    Gust, Spark and Gust + Spark.
+  - World behaviour: NPC dialogue (Ama's tonic, Wren's teaching), harvest,
+    combat and experience, death and respawn, regrowth.
+  - JSON saves across a host restart.
+  - Two real instances over ENet: join, chat, movement, host-only commands,
+    replication of skills, rejoin and saves.
+  - Totals: 108 rules checks and 11 network checks, in CI on every push.
+  - Rendering, HUD, windows, dialogue, landing preview and Gust + Spark,
+    checked visually under Xvfb.
+- **Unverified:** the exported Windows `.exe` at runtime (Wine here cannot
+  run any Godot 4.7 binary); internet hosting (needs UDP port forwarding).
+- **Provisional:** HP and monster numbers (`game/data/world/mobs.txt`,
+  `World.max_hp_for`); procedural character and creature art.
+- **Missing compared with the legacy build:** ground items and pickup, trade,
+  storage, equipment, shops, party, emotes, minimap, options window, sound,
+  import of old `athena.txt` saves, and moving a character to another PC.
+- **Blocked:** nothing.
