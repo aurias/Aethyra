@@ -1,0 +1,42 @@
+{
+ "ama": {
+  "name": "Windkeeper Ama",
+  "start": "hello",
+  "nodes": {
+   "hello": {"say": ["\"Welcome to the meadow. Feel how the wind leans on the grass? That is Gale.\""],
+             "choices": [["How do I use Gale?", "skills"],
+                         ["Can you make something from my harvest?", "craft"],
+                         ["Goodbye.", ""]]},
+   "skills": {"say": ["\"Face the way you want to go, then:\"",
+                      "1 - Dash: rush forward on the wind.",
+                      "2 - Gust: blow Gust Hoppers away from you.",
+                      "3 - Wind Scythe: cut grass, herbs and flowers to harvest them."],
+              "next": "skills2"},
+   "skills2": {"say": ["\"Each one draws on your Gale energy, the green bar. It returns quickly while you breathe the open air.\"",
+                       "\"Breeze Reeds hold a little wind. Mark them as supply in your pack and they lend you the current you cannot channel alone. Ask too much of them and they burst.\"",
+                       "\"Bring me three Meadow Herbs and three Windflower Petals and I will brew you a Gale Tonic.\""]},
+   "craft": {"if": {"have": [[703, 3], [704, 3]]}, "then": "brew", "else": "short"},
+   "brew": {"do": [["take", 703, 3], ["take", 704, 3], ["give", 710, 1]],
+            "say": ["\"There. A Gale Tonic: it mends wounds and fills your lungs with wind.\""]},
+   "short": {"say": ["\"I need three Meadow Herbs from the terrace above and three Windflower Petals from by the pond.\""]}
+  }
+ },
+ "wren": {
+  "name": "Wren the Ridge-runner",
+  "start": "hello",
+  "nodes": {
+   "hello": {"say": ["\"Stairs are for carrying things. The wind is for getting places.\""],
+             "choices": [["Teach me to move on the wind.", "teach"],
+                         ["Where is it worth going?", "where"],
+                         ["Goodbye.", ""]]},
+   "teach": {"if": {"grant": [[4, 1], [5, 1]]}, "then": "taught", "else": "known"},
+   "taught": {"say": ["\"Step to a cliff edge and face it. F lets the wind carry you down - Featherfall. G throws you up a ledge - Upward Jump.\""],
+              "next": "watch"},
+   "known": {"say": ["\"You know the moves already. Practise.\""], "next": "watch"},
+   "watch": {"say": ["\"Watch the ground ahead of you: a marker shows where you would land, or why you can't.\"",
+                     "\"A narrow ledge you can jump. The terrace face here is too tall until you have practised.\""]},
+   "where": {"say": ["\"Up on the lookout, east of here, Skyreeds grow where nobody without wind can reach. Their stems are the best Breeze Reeds.\"",
+                     "\"Hoppers love the terrace edge. A Gust at the right moment sends them tumbling to the meadow.\""]}
+  }
+ }
+}

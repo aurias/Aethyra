@@ -1,0 +1,10 @@
+// id|name|kind|effect|description
+// kind: misc, use (consumed by Use) or vessel (a hue vessel, see hue/vessels.txt)
+// effect: comma-separated heal N / restore <hue> N
+701|Breeze Reed|vessel||A hollow reed that holds a little wind.
+702|Grass Fiber|misc||Tough meadow fibre.
+703|Meadow Herb|use|heal 20|A bitter terrace herb.
+704|Windflower Petal|use|restore gale 20|Smells of open sky.
+705|Hopper Feather|misc||Light as a breath.
+706|Tempered Reed|vessel||A seasoned reed that holds a strong wind.
+710|Gale Tonic|use|heal 60,restore gale 60|Mends wounds and fills your lungs with wind.

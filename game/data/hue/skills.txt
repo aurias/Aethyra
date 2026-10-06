@@ -1,0 +1,31 @@
+// Aethyra hue skill definitions, one line per rank. PROVISIONAL numbers.
+// id|rank|name|hue|kind|energy|current|exec_ms|cooldown_ms|req_level|req_mastery|req_prof|prof_cap|p1|p2|p3|prof_award|mastery_award|exp_award|description
+//  energy: total energy one use draws; current: peak current it needs.
+//  exec_ms: how long one use occupies a Gale activation.
+//  req_prof: proficiency needed in the previous rank to learn this rank.
+//  dash p1 = range; gust p1 = radius, p2 = push, p3 = stagger ms;
+//  scythe p1 = radius; flow (permanent perk) p1 = flow pct added.
+//  exp_award is 0 for Wind Scythe: harvested plants already give
+//  experience through the normal kill path.
+//  Awards are per meaningful outcome (a tile dashed beyond the third, an
+//  enemy displaced, a plant harvested); see hue.cpp.
+1|1|Dash|gale|dash|12|6|300|1200|1|1|0|100|6|0|0|3|2|0|Rush up to 6 tiles the way you face on a gust of wind.
+1|2|Dash|gale|dash|14|8|300|1100|2|3|50|250|8|0|0|3|2|0|Rush up to 8 tiles.
+1|3|Dash|gale|dash|16|10|300|1000|4|6|150|500|10|0|0|3|2|0|Rush up to 10 tiles.
+2|1|Gust|gale|gust|15|6|400|1500|1|1|0|100|3|4|1500|5|3|0|Blow enemies in front of you up to 4 tiles away. No damage.
+2|2|Gust|gale|gust|18|9|400|1500|2|3|50|250|3|5|1800|5|3|0|Stronger: 5 tiles of push. Needs 9 current, more than a novice channels.
+2|3|Gust|gale|gust|24|14|400|1500|4|6|150|500|4|6|2000|5|3|0|A gale: radius 4, 6 tiles of push. Needs 14 current.
+3|1|Wind Scythe|gale|scythe|4|3|250|500|1|1|0|100|2|0|0|4|2|0|Cut grass, herbs and flowers in front of you to harvest them.
+3|2|Wind Scythe|gale|scythe|5|4|250|450|2|3|50|250|3|0|0|4|2|0|A wider sweep: radius 3.
+10|1|Steady Flow|gale|flow|0|0|0|0|2|3|0|0|25|0|0|0|0|0|Permanent: selected Gale vessels deliver 25% more safe current.
+10|2|Steady Flow|gale|flow|0|0|0|0|4|6|0|0|50|0|0|0|0|0|Permanent: selected Gale vessels deliver 50% more safe current.
+// Gale traversal (Pass 2). featherfall/jump p1 = levels, p2 = cliff cells
+// crossed (reach). Awards count each completed traversal.
+4|1|Featherfall|gale|featherfall|8|4|500|800|1|1|0|100|1|2|0|3|2|0|Drift down one level of cliff, no stairs needed.
+4|2|Featherfall|gale|featherfall|10|5|500|800|2|3|30|250|2|3|0|3|2|0|Drift down two levels, over wider cliffs.
+5|1|Upward Jump|gale|jump|14|6|450|1500|1|1|0|100|1|1|0|3|2|0|Leap up one level over a narrow cliff face.
+5|2|Upward Jump|gale|jump|16|7|450|1400|2|3|30|250|1|2|0|3|2|0|Leap up one level over a cliff two cells wide.
+// Ember (Pass 2 test content; learned at an Ember altar later, granted by
+// GMs for now). spark p1 = range, p2 = fire damage, p3 = burn chance %.
+6|1|Spark|ember|spark|12|6|300|1200|1|1|0|100|4|8|35|4|2|0|Snap fire at your target: 8 damage, 35% chance to burn.
+6|2|Spark|ember|spark|15|8|300|1100|2|3|50|250|5|12|50|4|2|0|A hotter spark: 12 damage, 50% chance to burn, range 5.

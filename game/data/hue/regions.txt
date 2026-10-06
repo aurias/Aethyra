@@ -1,0 +1,7 @@
+// Hue concentration per map: percent of normal regeneration for a hue.
+// Open air supports Gale; unlisted maps use 100 for Gale, 0 for others.
+// map|hue|regen_pct
+gale-1|gale|100
+// PROVISIONAL: a little Ember lingers in the meadow so the test Spark
+// recovers (half the normal rate).
+gale-1|ember|50
