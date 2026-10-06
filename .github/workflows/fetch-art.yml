@@ -1,0 +1,44 @@
+name: Fetch Whispers of Avalon tileset
+
+# Downloads Leonard Pabin's "Whispers of Avalon: Grassland Tileset" from its
+# OpenGameArt page into art/whispers-of-avalon and commits it to the branch
+# that triggered the run. The page is kept for its licence and credits
+# (CC BY 3.0 / GPL 3.0 / GPL 2.0; see art/whispers-of-avalon/CREDITS.md).
+
+on:
+  push:
+    paths: ['.github/workflows/fetch-art.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download the tileset files
+        run: |
+          set -eu
+          dir=art/whispers-of-avalon/source
+          mkdir -p "$dir"
+          page=https://opengameart.org/content/whispers-of-avalon-grassland-tileset
+          curl -fsSL "$page" -o "$dir/opengameart-page.html"
+          grep -o 'https://opengameart.org/sites/default/files/[^"]*' \
+            "$dir/opengameart-page.html" | sort -u > "$dir/files.txt"
+          cat "$dir/files.txt"
+          while read -r url; do
+            curl -fsSL "$url" -o "$dir/$(basename "$url")"
+          done < "$dir/files.txt"
+          ls -la "$dir"
+
+      - name: Commit them to this branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add art/whispers-of-avalon
+          git commit -m "Art: Whispers of Avalon grassland tileset (Leonard Pabin, OpenGameArt)" || exit 0
+          git pull --rebase origin "$GITHUB_REF_NAME"
+          git push origin "HEAD:$GITHUB_REF_NAME"
