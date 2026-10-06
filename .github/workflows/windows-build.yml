@@ -4,8 +4,16 @@ name: Windows build
 # bundled world server (server/aethyra-server.exe with the world template)
 # used by Host World. Download it from the run's "Aethyra-windows" artifact.
 
+# The legacy (2009 client + tmwAthena) reference build: it only rebuilds when
+# that code changes. The Godot game is built by godot.yml.
 on:
   push:
+    paths:
+      - "src/**"
+      - "server/**"
+      - "data/**"
+      - "CMakeLists.txt"
+      - ".github/workflows/windows-build.yml"
   workflow_dispatch:
 
 jobs:

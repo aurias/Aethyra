@@ -1,0 +1,39 @@
+Aethyra - the Windswept Meadow (Godot build)
+============================================
+
+Run Aethyra.exe. (Aethyra.console.exe does the same, with a log window.)
+
+PLAY ALONE OR HOST FOR FRIENDS
+  Enter a character name, open "Host a world", and press "Host and play".
+  The world is saved on this computer, in
+  %APPDATA%\Godot\app_userdata\Aethyra\worlds\<world name>.
+  Friends can join while you play. Windows may ask whether Aethyra may use
+  the network: allow it. Over the internet, forward UDP port 24680 (or the
+  port you chose) to this computer.
+
+JOIN A FRIEND
+  Open "Join a friend" and enter the host's address, port and world password.
+  Your character lives in the host's world. It belongs to this installation,
+  so nobody else can take your name there.
+
+CONTROLS
+  WASD / arrows   walk and face          Click   walk, attack, talk
+  1 Dash   2 Gust   3 Wind Scythe   4 Featherfall   5 Upward Jump   6 Spark
+  Q        prime Spark: your next Gust carries its fire (Ember + Gale)
+  Shift    hold while using a skill to accept the risk of overloading vessels
+  Tab      target the nearest enemy
+  H Hues   K Skills   I Pack   Enter chat   F1 help   Esc close / leave
+
+  Developer commands (host only), typed in chat, for example:
+    @hueprofile advanced   @item 701 10   @huegrant access ember
+    @huegrant skill 6 1   @hueset energy gale 999   @warp 20 10   @level 5
+
+WHERE TO GO
+  Windkeeper Ama, by the arrival clearing, explains Gale and brews tonics.
+  Take the stairs north to the terrace: Wren the Ridge-runner teaches
+  Featherfall and Upward Jump. Jump east onto the lookout for Skyreeds.
+
+CREDITS
+  Grassland tileset "Whispers of Avalon" by Leonard Pabin (barrel after
+  Crush), CC-BY 3.0, via OpenGameArt.org.
+  Made with Godot Engine (MIT licence).

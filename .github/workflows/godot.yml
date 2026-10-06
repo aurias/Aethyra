@@ -1,0 +1,62 @@
+name: Godot build
+
+# Tests the Godot game (rules, then two real instances over ENet) and exports
+# the Windows package. Download it from the run's "Aethyra-godot-windows"
+# artifact.
+
+on:
+  push:
+    paths:
+      - "game/**"
+      - ".github/workflows/godot.yml"
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: "4.7.2"
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Godot and the Windows export templates
+        run: |
+          base=https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable
+          curl -fsSL --retry 4 -o godot.zip "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          sudo mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" /usr/local/bin/godot
+          curl -fsSL --retry 4 -o templates.tpz "$base/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          dir="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          mkdir -p "$dir"
+          unzip -q -j templates.tpz templates/version.txt \
+            templates/windows_release_x86_64.exe templates/windows_debug_x86_64.exe \
+            templates/windows_release_x86_64_console.exe templates/windows_debug_x86_64_console.exe -d "$dir"
+          rm templates.tpz godot.zip
+
+      - name: Import the project
+        working-directory: game
+        run: godot --headless --import
+
+      - name: Rules tests
+        working-directory: game
+        run: godot --headless -s res://tests/run_tests.gd
+
+      - name: Network test (headless host and friend)
+        working-directory: game
+        run: tests/net_test.sh
+
+      - name: Export for Windows
+        working-directory: game
+        run: |
+          mkdir -p build/windows
+          godot --headless --export-release "Windows Desktop" build/windows/Aethyra.exe
+          test -s build/windows/Aethyra.exe
+          cp PLAY.txt build/windows/
+          cp ../art/whispers-of-avalon/CREDITS.md build/windows/CREDITS-tileset.md
+          ls -la build/windows
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Aethyra-godot-windows
+          path: game/build/windows
