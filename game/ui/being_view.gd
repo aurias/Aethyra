@@ -164,6 +164,8 @@ func _draw() -> void:
 	match kind:
 		Being.PLAYER:
 			_draw_person(bob, colour, Color("3f7d4a"), Color("5a3b22"))
+		Being.CACHE:
+			_draw_cache(t)
 		Being.NPC:
 			if key == "ama":
 				_draw_person(bob, Color("2f7f86"), Color("e8e3d0"), Color("dfe3e8"), true)
@@ -222,6 +224,14 @@ func _draw_person(bob: float, cloak: Color, scarf: Color, hair: Color, robe := f
 	if hat:
 		draw_colored_polygon(PackedVector2Array([head + Vector2(-9, -3), head + Vector2(9, -3),
 				head + Vector2(3, -12), head + Vector2(-3, -12)]), Color("5b3d22"))
+
+
+func _draw_cache(t: float) -> void:
+	# A bundle of dropped vessels, faintly glowing as it discharges.
+	draw_circle(Vector2(0, -6), 7.0, Color("8a6a3e"))
+	draw_arc(Vector2(0, -6), 7.0, 0, TAU, 16, OUTLINE, 1.0)
+	draw_line(Vector2(-3, -13), Vector2(3, -13), Color("5a4024"), 2.0)
+	draw_circle(Vector2(0, -6), 10.0 + sin(t * 3.0) * 2.0, Color(0.6, 1, 0.7, 0.15))
 
 
 func _draw_hopper(t: float, bob: float) -> void:

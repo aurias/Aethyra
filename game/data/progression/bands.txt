@@ -1,0 +1,9 @@
+// Zone depth bands: band|training_limit|respawn
+// training_limit: mastery trains at full rate up to here (soft cap).
+// respawn: town = wake in town; camp = your anchor in this biome if any;
+// node = an anchor whose protection covers the zone's concentration.
+edge|10|town
+frontier|20|camp
+deep|30|node
+core|40|node
+altar|50|node

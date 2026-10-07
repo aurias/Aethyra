@@ -13,10 +13,10 @@ const PLAYER_ATTACK_MS := 900
 const RESPAWN_DELAY_MS := 3000
 const AUTOSAVE_MS := 30000
 const TALK_RANGE := 3
-const EXP_TABLE := [9, 16, 25, 36, 77, 112, 153, 200, 253, 320, 385, 490, 585, 700, 830,
-		970, 1120, 1260, 1420, 1620]
+const CACHE_MS := 600000
 
 var db: HueDB
+var prog: Progression
 var hue: HueRules
 var map: GameMap
 var items := {}         # id -> {id, name, kind, effects, description}
@@ -44,7 +44,9 @@ var _astar := AStarGrid2D.new()
 func _init(map_name := "gale-1", data_dir := "res://data") -> void:
 	db = HueDB.load_from(data_dir + "/hue")
 	errors.append_array(db.errors)
-	hue = HueRules.new(self, db)
+	prog = Progression.load_from(data_dir, db)
+	errors.append_array(prog.errors)
+	hue = HueRules.new(self, db, prog)
 	map = GameMap.load_file("%s/maps/%s.txt" % [data_dir, map_name])
 	errors.append_array(map.errors)
 	items = read_items(data_dir + "/world/items.txt")
@@ -162,9 +164,22 @@ func private_state(p: Being) -> Dictionary:
 	for a in p.session.active:
 		if a.until > now:
 			active.append({"skill": a.skill, "hue": a.hue, "left": a.until - now})
-	return {"t": "me", "to": p.peer, "id": p.id, "name": p.name, "level": p.ch.level,
-			"exp": p.ch.exp, "exp_next": exp_next(p.ch.level), "hp": p.hp,
-			"max_hp": p.max_hp, "hue": p.ch.hue.duplicate(true),
+	var hues := []
+	for i in p.ch.hue.hues.size():
+		var r: Dictionary = p.ch.hue.hues[i]
+		hues.append({} if not r.access else {"capacity": hue.capacity(p.ch, i),
+				"channel": hue.channel(p.ch, i), "dissonance": prog.dissonance(p.ch, i),
+				"regen": hue.regen_amount(p.ch, i, map.concentration(p.pos, i)),
+				"conc": map.concentration(p.pos, i), "offers": prog.talent_offers(p.ch, i),
+				"soft_cap": prog.soft_cap(r, map.zone_at(p.pos))})
+	var z := map.zone_at(p.pos)
+	return {"t": "me", "to": p.peer, "id": p.id, "name": p.name, "hp": p.hp,
+			"max_hp": p.max_hp, "hue": p.ch.hue.duplicate(true), "derived": hues,
+			"body": p.ch.body.duplicate(true), "equipment": p.ch.equipment.duplicate(true),
+			"feats": p.ch.progress.feats.duplicate(), "anchors": p.ch.anchors.duplicate(true),
+			"stats": {"attack": attack_bonus(p), "defense": defense(p), "move_ms": p.step_ms,
+					"notice": prog.stat(p.ch, "notice", 100, 10), "yield": prog.stat(p.ch, "yield", 100)},
+			"zone": {"key": z.key, "name": z.name, "band": z.band, "limit": prog.training_limit(z)},
 			"inventory": p.ch.inventory.duplicate(true), "ready": ready, "active": active,
 			"gm": is_gm(p)}
 
@@ -177,14 +192,32 @@ func effect(b: Being, name: String) -> void:
 # --------------------------------------------------------------------------
 # Players: joining, leaving, saves
 
-static func max_hp_for(level: int) -> int:
-	return 60 + 10 * (level - 1)
+## Recompute what modifiers derive: health and walking pace.
+func refresh_stats(p: Being) -> void:
+	p.max_hp = prog.stat(p.ch, "max_hp", db.b("base_hp", 60), 1)
+	p.hp = mini(p.hp, p.max_hp)
+	p.step_ms = prog.stat(p.ch, "move_ms", db.b("move_ms", 150), 60)
+	private_changed(p)
 
 
-static func exp_next(level: int) -> int:
-	if level <= EXP_TABLE.size():
-		return EXP_TABLE[level - 1]
-	return int(EXP_TABLE.back() * pow(1.15, level - EXP_TABLE.size()))
+func attack_bonus(p: Being) -> int:
+	return prog.stat(p.ch, "attack", 0)
+
+
+func defense(p: Being) -> int:
+	return prog.stat(p.ch, "defense", 0)
+
+
+## Train body stats from an activity and say what rose.
+func train(p: Being, activity: String, units: int) -> void:
+	if p == null or p.kind != Being.PLAYER:
+		return
+	var said := prog.train(p.ch, activity, units)
+	for line in said:
+		tell(p, line)
+	if not said.is_empty():
+		refresh_stats(p)
+	private_changed(p)
 
 
 static func valid_name(n: String) -> bool:
@@ -253,7 +286,9 @@ func join(peer: int, n: String, secret: String) -> String:
 	p.facing = Vector2i(ch.get("fx", 0), ch.get("fy", 1))
 	p.new_session()
 	hue.repair(ch)
-	p.max_hp = max_hp_for(ch.level)
+	ch.erase("conditions")
+	p.hp = 1
+	refresh_stats(p)
 	p.hp = clampi(ch.hp, 1, p.max_hp)
 	if not map.walkable(p.pos.x, p.pos.y):
 		p.pos = map.spawn
@@ -269,10 +304,11 @@ func join(peer: int, n: String, secret: String) -> String:
 
 
 func new_character(n: String, secret: String) -> Dictionary:
-	var ch := {"version": 1, "name": n, "secret": secret, "level": 1, "exp": 0,
-			"hp": max_hp_for(1), "x": map.spawn.x, "y": map.spawn.y, "fx": 0, "fy": 1,
+	var ch := {"version": 2, "name": n, "secret": secret,
+			"hp": db.b("base_hp", 60), "x": map.spawn.x, "y": map.spawn.y, "fx": 0, "fy": 1,
 			"inventory": []}
 	hue.init_character(ch, 1)
+	prog.ensure(ch)
 	return ch
 
 
@@ -347,6 +383,19 @@ func handle(peer: int, req: Dictionary) -> void:
 			p.dialog = {}
 		"chat":
 			chat(p, str(req.get("text", "")))
+		"talent":
+			var id := str(req.get("id", ""))
+			var why := prog.pick_talent(p.ch, id)
+			tell(p, why if why != "" else "You learned the talent %s." % prog.talents[id].name)
+			refresh_stats(p)
+		"equip":
+			equip(p, req.get("index", -1))
+		"unequip":
+			unequip(p, str(req.get("slot", "")))
+		"socket":
+			socket(p, str(req.get("slot", "")), req.get("index", -1))
+		"altar":
+			altar_roll(p, str(req.get("slot", "")))
 
 
 # --------------------------------------------------------------------------
@@ -378,6 +427,23 @@ func _step(b: Being) -> void:
 	b.pos = n
 	b.next_step = now + b.step_ms
 	broadcast({"t": "move", "id": b.id, "x": n.x, "y": n.y, "ms": b.step_ms})
+	if b.kind == Being.PLAYER:
+		_arrived(b)
+
+
+## A player reached a cell: exploration, caches, the zone they are in.
+func _arrived(p: Being) -> void:
+	if prog.explore(p.ch, map.name, p.pos, map.w, map.h):
+		train(p, "explore", 1)
+	for c in beings.values():
+		if c.kind == Being.CACHE and c.pos == p.pos and c.key == p.name:
+			_recover(p, c)
+	var z := map.zone_at(p.pos)
+	if p.session.get("zone", "") != z.key:
+		p.session.zone = z.key
+		if z.key != "":
+			tell(p, "%s (%s)" % [z.name, z.band])
+		private_changed(p)
 
 
 ## Move instantly (skills, knockback, falls), with an animation kind.
@@ -386,6 +452,8 @@ func slide(b: Being, to: Vector2i, kind: int) -> void:
 	b.pos = to
 	b.next_step = now + 300
 	broadcast({"t": "slide", "id": b.id, "x": to.x, "y": to.y, "kind": kind})
+	if b.kind == Being.PLAYER:
+		_arrived(b)
 
 
 func stagger(b: Being, ms: int) -> void:
@@ -399,7 +467,7 @@ func occupied(cell: Vector2i, self_being: Being) -> bool:
 	for b in beings.values():
 		if b == self_being or b.pos != cell:
 			continue
-		if b.kind == Being.MOB and (b.dead or b.is_vegetation()):
+		if b.kind == Being.CACHE or (b.kind == Being.MOB and (b.dead or b.is_vegetation())):
 			continue
 		if b.kind == Being.PLAYER and b.dead:
 			continue
@@ -429,7 +497,15 @@ static func cheb(a: Vector2i, b: Vector2i) -> int:
 func damage(b: Being, amount: int, src: Being, kind := "hit") -> void:
 	if b.dead:
 		return
+	if b.kind == Being.PLAYER and kind == "hit":
+		amount = maxi(1, amount - defense(b))
 	b.hp = maxi(0, b.hp - amount)
+	if src and src.kind == Being.PLAYER and b != src:
+		train(src, "deal", amount)
+		if kind in ["fire", "burn"]:
+			train(src, "hue_deal", amount)
+	if b.kind == Being.PLAYER:
+		train(b, "take", amount)
 	broadcast({"t": "damage", "id": b.id, "src": src.id if src else 0, "amount": amount,
 			"hp": b.hp, "kind": kind})
 	if b.kind == Being.PLAYER:
@@ -455,14 +531,16 @@ func kill(b: Being, killer: Being) -> void:
 		for m in beings.values():
 			if m.target == b.id:
 				m.target = 0
-		tell(b, "The wind lets you down gently. You will wake in the clearing.")
+		_death_chain(b)
 		private_changed(b)
 		return
 	if killer and killer.kind == Being.PLAYER:
-		gain_exp(killer, b.mob.exp)
+		var extra: int = prog.stat(killer.ch, "yield", 100) - 100
 		for drop in b.mob.drops:
 			if rng.randi_range(0, 9999) < drop[1]:
-				give_item(killer, drop[0], 1)
+				give_item(killer, drop[0], 1 + (1 if rng.randi_range(0, 99) < extra else 0))
+		if b.is_vegetation():
+			train(killer, "harvest", 1)
 	var g: Dictionary = _groups[b.group]
 	g.alive -= 1
 	var delay: int = g.spawn.respawn_ms
@@ -470,32 +548,81 @@ func kill(b: Being, killer: Being) -> void:
 	b.respawn_at = now + 1500     # corpse lingers, then goes
 
 
-func gain_exp(p: Being, amount: int) -> void:
-	if amount <= 0 or p.kind != Being.PLAYER:
-		return
-	p.ch.exp += amount
-	while p.ch.exp >= exp_next(p.ch.level):
-		p.ch.exp -= exp_next(p.ch.level)
-		set_level(p, p.ch.level + 1)
-	private_changed(p)
+## Where a fallen player wakes, and what the site takes, by zone depth:
+## edge -> town; frontier -> your camp in this biome, else town; deep and
+## beyond -> an anchor whose protection covers the concentration, else town
+## and the site's penalty (and the overwhelmed anchor's tether breaks).
+func _death_chain(p: Being) -> void:
+	var z := map.zone_at(p.pos)
+	var rule: String = prog.bands.get(z.band, {"respawn": "town"}).respawn
+	var conc := 0
+	for h in z.conc:
+		conc = maxi(conc, z.conc[h])
+	var anchor: Dictionary = p.ch.anchors.get(map.name, {})
+	p.session.wake = map.spawn
+	var where := "in the clearing"
+	match rule:
+		"camp":
+			if not anchor.is_empty():
+				p.session.wake = Vector2i(anchor.x, anchor.y)
+				where = "at your camp"
+		"node":
+			if not anchor.is_empty() and anchor.protection >= conc:
+				p.session.wake = Vector2i(anchor.x, anchor.y)
+				where = "at your warded camp"
+			else:
+				if not anchor.is_empty():
+					p.ch.anchors.erase(map.name)
+					tell(p, "The %s here overwhelms your camp's wards: its tether snaps." % z.name)
+				_site_penalty(p, z)
+	tell(p, "You fall. You will wake %s." % where)
 
 
-func set_level(p: Being, level: int) -> void:
-	p.ch.level = level
-	p.max_hp = max_hp_for(level)
-	p.hp = p.max_hp
-	hue.level_points(p.ch)
-	broadcast({"t": "level", "id": p.id, "level": level, "hp": p.hp, "max_hp": p.max_hp})
-	tell(p, "You reached level %d." % level)
-	private_changed(p)
+func _site_penalty(p: Being, z: Dictionary) -> void:
+	match z.penalty:
+		"drop_vessels":
+			var lots := []
+			for i in p.ch.inventory.size():
+				var lot = p.ch.inventory[i]
+				if lot != null and not hue.vessel_at(p.ch, i).is_empty():
+					lots.append(lot.duplicate(true))
+					p.ch.inventory[i] = null
+					hue.slot_changed(p.ch, i)
+			if not lots.is_empty():
+				var c := _add_being(Being.CACHE, "%s's vessels" % p.name, p.pos)
+				c.key = p.name
+				c.ch = {"items": lots}
+				c.respawn_at = now + CACHE_MS
+				broadcast({"t": "spawn", "being": c.public()})
+				tell(p, "Your vessels spill where you fell. Return for them before the wind takes them.")
+		"mastery":
+			var best := -1
+			for h in z.conc:
+				if p.ch.hue.hues[h].access and (best < 0 or z.conc[h] > z.conc[best]):
+					best = h
+			if best >= 0:
+				p.ch.hue.hues[best].xp = 0
+				tell(p, "The %s here scatters your %s progress." % [z.name, HueDB.hue_title(best)])
+		"condition":
+			p.ch["conditions"] = [{"name": "Shaken", "until": now + 60000, "mods": [["max_hp", 0, -20]]}]
+			tell(p, "You wake shaken: less health for a while.")
+
+
+func _recover(p: Being, c: Being) -> void:
+	for lot in c.ch.get("items", []):
+		add_lot(p, lot)
+	tell(p, "You gather what you dropped.")
+	beings.erase(c.id)
+	broadcast({"t": "despawn", "id": c.id})
 
 
 func _player_tick(p: Being) -> void:
 	if p.dead:
 		if now >= p.respawn_at:
 			p.dead = false
+			refresh_stats(p)
 			p.hp = p.max_hp
-			p.pos = map.spawn
+			p.pos = p.session.get("wake", map.spawn)
 			p.path.clear()
 			p.safe_until = now + 5000
 			broadcast({"t": "spawn", "being": p.public()})
@@ -512,7 +639,7 @@ func _player_tick(p: Being) -> void:
 			if now >= p.next_attack:
 				p.next_attack = now + PLAYER_ATTACK_MS
 				broadcast({"t": "attack", "id": p.id, "target": t.id})
-				damage(t, rng.randi_range(3, 6) + p.ch.level, p)
+				damage(t, rng.randi_range(db.b("attack_min", 3), db.b("attack_max", 6)) + attack_bonus(p), p)
 		elif p.path.is_empty() or cheb(p.path.back(), t.pos) > 1:
 			walk_to(p, t.pos)
 			if not p.path.is_empty() and p.path.back() == t.pos:
@@ -543,6 +670,9 @@ func _mob_tick(b: Being) -> void:
 		var best := sight + 1
 		for q in players.values():
 			var dist := cheb(q.pos, b.pos)
+			# Vigilance: you notice them first, so they notice you later.
+			if dist > sight * prog.stat(q.ch, "notice", 100, 10) / 100:
+				continue
 			if not q.dead and now >= q.safe_until and dist < best and map.same_level(q.pos, b.pos):
 				best = dist
 				t = q
@@ -633,18 +763,39 @@ func count_item(p: Being, id: int) -> int:
 
 
 func give_item(p: Being, id: int, amount: int) -> bool:
+	if prog.gear.has(id):
+		# Equipment is one instance per item: rarity, sockets, enchants.
+		for k in amount:
+			var g: Dictionary = prog.gear[id]
+			var sockets := []
+			sockets.resize(g.sockets)
+			sockets.fill(0)
+			if not add_lot(p, {"item": id, "amount": 1, "rarity": 0, "sockets": sockets, "enchants": []}):
+				return false
+		send(p, {"t": "loot", "item": id, "amount": amount})
+		return true
 	var lot := {"item": id, "amount": amount, "charge": 0, "condition": 0, "init": false}
 	hue.init_lot(lot)
+	if not add_lot(p, lot):
+		return false
+	send(p, {"t": "loot", "item": id, "amount": amount})
+	return true
+
+
+## Put a lot into the pack, merging with an identical lot (never gear).
+func add_lot(p: Being, lot: Dictionary) -> bool:
 	var inv: Array = p.ch.inventory
 	var slot := -1
-	for i in inv.size():
-		var o = inv[i]
-		# Stacks merge only when every unit shares the same lot state.
-		if o != null and o.item == id and o.charge == lot.charge and o.condition == lot.condition \
-				and o.get("init", false) == lot.init:
-			o.amount += amount
-			slot = i
-			break
+	if not prog.gear.has(int(lot.item)):
+		for i in inv.size():
+			var o = inv[i]
+			# Stacks merge only when every unit shares the same lot state.
+			if o != null and o.item == lot.item and o.get("charge", 0) == lot.get("charge", 0) \
+					and o.get("condition", 0) == lot.get("condition", 0) \
+					and o.get("init", false) == lot.get("init", false):
+				o.amount += lot.amount
+				slot = i
+				break
 	if slot < 0:
 		slot = inv.find(null)
 		if slot < 0:
@@ -655,7 +806,6 @@ func give_item(p: Being, id: int, amount: int) -> bool:
 			slot = inv.size() - 1
 		else:
 			inv[slot] = lot
-	send(p, {"t": "loot", "item": id, "amount": amount})
 	private_changed(p)
 	return true
 
@@ -687,6 +837,12 @@ func use_item(p: Being, i: int) -> void:
 	if p.dead or i < 0 or i >= p.ch.inventory.size() or p.ch.inventory[i] == null:
 		return
 	var it: Dictionary = items.get(p.ch.inventory[i].item, {})
+	if it.get("kind") == "gear":
+		equip(p, i)
+		return
+	if it.get("kind") == "kit":
+		_use_kit(p, i, it)
+		return
 	if it.get("kind") != "use":
 		tell(p, "You cannot use that.")
 		return
@@ -703,6 +859,109 @@ func use_item(p: Being, i: int) -> void:
 				said.append("%d %s energy" % [hue.restore(p, h, int(e[2])), HueDB.hue_title(h)])
 	remove_item_at(p, i, 1)
 	tell(p, "%s restores %s." % [it.name, " and ".join(said)])
+
+
+func _use_kit(p: Being, i: int, it: Dictionary) -> void:
+	for e in it.effects:
+		if e[0] == "anchor":
+			var z := map.zone_at(p.pos)
+			if z.band == "edge":
+				tell(p, "This close to town there is no need for a camp.")
+				return
+			p.ch.anchors[map.name] = {"x": p.pos.x, "y": p.pos.y, "protection": int(e[1])}
+			remove_item_at(p, i, 1)
+			tell(p, "You set a camp here (wards %d). If you fall in this land, you may wake here." % int(e[1]))
+			return
+
+
+# --------------------------------------------------------------------------
+# Equipment
+
+func slot_for(p: Being, item: int) -> String:
+	var slot: String = prog.gear[item].slot
+	if slot == "ring":
+		return "ring2" if p.ch.equipment.has("ring1") and not p.ch.equipment.has("ring2") else "ring1"
+	return slot
+
+
+func equip(p: Being, i: int) -> void:
+	if i < 0 or i >= p.ch.inventory.size() or p.ch.inventory[i] == null:
+		return
+	var inst: Dictionary = p.ch.inventory[i]
+	if not prog.gear.has(int(inst.item)):
+		tell(p, "You cannot wear that.")
+		return
+	var slot := slot_for(p, inst.item)
+	var old = p.ch.equipment.get(slot)
+	p.ch.inventory[i] = old
+	hue.slot_changed(p.ch, i)
+	p.ch.equipment[slot] = inst
+	tell(p, "You put on the %s." % item_name(inst.item))
+	refresh_stats(p)
+
+
+func unequip(p: Being, slot: String) -> void:
+	if not p.ch.equipment.has(slot):
+		return
+	if not add_lot(p, p.ch.equipment[slot]):
+		tell(p, "Your pack is full.")
+		return
+	p.ch.equipment.erase(slot)
+	refresh_stats(p)
+
+
+## Set a gem from the pack into a free socket of equipped gear.
+func socket(p: Being, slot: String, gem_index: int) -> void:
+	var inst: Dictionary = p.ch.equipment.get(slot, {})
+	if inst.is_empty() or gem_index < 0 or gem_index >= p.ch.inventory.size() or p.ch.inventory[gem_index] == null:
+		return
+	var gem: int = p.ch.inventory[gem_index].item
+	if not prog.gems.has(gem):
+		tell(p, "That is not a gem.")
+		return
+	var free: int = inst.sockets.find(0)
+	if free < 0:
+		tell(p, "The %s has no free socket." % item_name(inst.item))
+		return
+	inst.sockets[free] = gem
+	remove_item_at(p, gem_index, 1)
+	tell(p, "You set the %s into the %s." % [item_name(gem), item_name(inst.item)])
+	refresh_stats(p)
+
+
+## At an altar or a core, push an equipped item's rarity up. Costs energy of
+## the site's strongest hue; failure keeps the item but spends the energy.
+## (Provisional: the design leaves altar costs and failure open.)
+func altar_roll(p: Being, slot: String) -> void:
+	var inst: Dictionary = p.ch.equipment.get(slot, {})
+	if inst.is_empty():
+		return
+	var z := map.zone_at(p.pos)
+	if not (z.band in ["core", "altar"]):
+		tell(p, "Only at a core or an altar can an item be raised.")
+		return
+	var h := -1
+	for k in z.conc:
+		if h < 0 or z.conc[k] > z.conc[h]:
+			h = k
+	var cost := db.b("altar_energy_cost", 30)
+	var r: Dictionary = p.ch.hue.hues[h] if h >= 0 else {}
+	if r.is_empty() or not r.access or r.energy < cost:
+		tell(p, "Raising it needs %d %s energy." % [cost, HueDB.hue_title(h)])
+		return
+	var rar: int = inst.get("rarity", 0)
+	if rar >= prog.rarities.size() - 1:
+		tell(p, "It cannot be raised further.")
+		return
+	r.energy -= cost
+	if rng.randi_range(0, 99) < prog.rarities[rar].up_chance:
+		inst.rarity = rar + 1
+		for k in prog.rarities[rar + 1].sockets - prog.rarities[rar].sockets:
+			inst.sockets.append(0)
+		tell(p, "The %s rises to %s." % [item_name(inst.item), prog.rarities[rar + 1].name])
+	else:
+		tell(p, "The %s drinks the energy but does not change." % item_name(inst.item))
+	refresh_stats(p)
 
 
 # --------------------------------------------------------------------------
@@ -747,6 +1006,7 @@ func _enter_node(p: Being, node_key: String) -> void:
 		match act[0]:
 			"take": take_item(p, int(act[1]), int(act[2]))
 			"give": give_item(p, int(act[1]), int(act[2]))
+			"train": train(p, str(act[1]), int(act[2]))
 	p.dialog.node = node_key
 	var choices := []
 	for c in node.get("choices", []):
@@ -790,9 +1050,12 @@ func command(p: Being, text: String) -> void:
 	match a[0]:
 		"hueinfo":
 			var st: Dictionary = p.ch.hue
-			tell(p, "Hue state v%d, origin %d, %d skill points (granted to level %d), balance v%d, forced %d"
-					% [st.version, st.origin, st.skill_points, st.points_level,
-					db.b("balance_version"), p.session.forced])
+			var pts := []
+			for i in st.hues.size():
+				if st.hues[i].access:
+					pts.append("%s %d" % [HueDB.hue_name(i), st.hues[i].points])
+			tell(p, "Hue state v%d, origin %d, points %s, balance v%d, forced %d"
+					% [st.version, st.origin, ", ".join(pts), db.b("balance_version"), p.session.forced])
 		"hueprofile":
 			tell(p, "Profile applied." if a.size() > 1 and hue.apply_profile(p, a[1]) else "Unknown profile.")
 		"hueforce":
@@ -810,7 +1073,11 @@ func command(p: Being, text: String) -> void:
 				"energy": hue.set_energy(p, HueDB.hue_index(a[2]), arg.call(3))
 				"mastery": hue.set_mastery(p, HueDB.hue_index(a[2]), arg.call(3))
 				"points":
-					p.ch.hue.skill_points = clampi(arg.call(2), 0, 999)
+					# @hueset points <hue> <n>
+					p.ch.hue.hues[HueDB.hue_index(a[2])].points = clampi(arg.call(3), 0, 999)
+					private_changed(p)
+				"cap":
+					p.ch.hue.hues[HueDB.hue_index(a[2])].cap = clampi(arg.call(3), 1, 50)
 					private_changed(p)
 				"prof": hue.set_proficiency(p, arg.call(2), arg.call(3))
 		"huegrant":
@@ -825,8 +1092,18 @@ func command(p: Being, text: String) -> void:
 			slide(p, Vector2i(arg.call(1), arg.call(2)), HueRules.Slide.DASH)
 		"spawn":
 			spawn_at(arg.call(1), Vector2i(arg.call(2, p.pos.x), arg.call(3, p.pos.y)))
-		"level":
-			set_level(p, clampi(arg.call(1, 1), 1, 99))
+		"body":
+			# @body <stat> <level>
+			if a.size() > 2 and p.ch.body.has(a[1]):
+				p.ch.body[a[1]] = {"lvl": clampi(arg.call(2), 0, 999), "xp": 0}
+				refresh_stats(p)
+		"technique":
+			# @technique <hue> <hue>: a hybrid technique for that pair
+			if a.size() > 2:
+				var key := Progression.pair_key(HueDB.hue_index(a[1]), HueDB.hue_index(a[2]))
+				if not p.ch.hue.techniques.has(key):
+					p.ch.hue.techniques.append(key)
+				refresh_stats(p)
 		"heal":
 			p.hp = p.max_hp
 			private_changed(p)
@@ -852,6 +1129,9 @@ func _tick_once() -> void:
 	for b in beings.values():
 		if b.kind == Being.MOB:
 			_mob_tick(b)
+		elif b.kind == Being.CACHE and now >= b.respawn_at:
+			beings.erase(b.id)
+			broadcast({"t": "despawn", "id": b.id})
 	for g in _groups.size():
 		var group: Dictionary = _groups[g]
 		var due: Array = group.pending.filter(func(t): return t <= now)
@@ -865,6 +1145,12 @@ func _tick_once() -> void:
 		for p in players.values():
 			if hue.regen(p):
 				private_changed(p)
+			if p.ch.has("conditions"):
+				var before: int = p.ch.conditions.size()
+				p.ch.conditions = p.ch.conditions.filter(func(c): return c.until > now)
+				if p.ch.conditions.size() != before:
+					tell(p, "You feel steady again.")
+					refresh_stats(p)
 	if now >= _next_autosave:
 		_next_autosave = now + AUTOSAVE_MS
 		save_all()

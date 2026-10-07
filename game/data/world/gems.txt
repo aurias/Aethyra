@@ -1,0 +1,4 @@
+// Gems and conduits: item|modifiers|tags
+851|gale.current:+1|gale,conduit
+852|attack:+2|ember
+853|max_hp:+8|terra

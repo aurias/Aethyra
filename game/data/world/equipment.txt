@@ -1,0 +1,6 @@
+// Equipment bases: item|slot|tier|modifiers|sockets|tags
+// slots: head body hands legs feet main off ring amulet
+801|head|1|max_hp:+5|1|reed
+802|feet|1|move_ms:-5%|1|windrunner,gale
+803|body|1|max_hp:+10,defense:+1|1|hide
+811|main|1|attack:+3|1|spear

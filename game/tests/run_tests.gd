@@ -34,7 +34,7 @@ var request := 0
 
 func _initialize() -> void:
 	var only := OS.get_cmdline_user_args()
-	for scenario in ["data", "terrain", "pass1", "pass2", "spark", "world", "saves"]:
+	for scenario in ["data", "terrain", "pass1", "pass2", "spark", "world", "saves", "progression"]:
 		if only.is_empty() or only.has(scenario):
 			print("== ", scenario)
 			call("t_" + scenario)
@@ -244,11 +244,11 @@ func t_pass1() -> void:
 	fresh(Vector2i(2, 20))
 	var g := gale()
 	var row := w.db.mastery_row(g.mastery)
-	check(g.mastery == 1 and g.cap == 10 and g.energy == 60 and w.hue.capacity_of(g) == 60
+	check(g.mastery == 1 and g.cap == 15 and g.energy == 60 and w.hue.capacity(a.ch, GALE) == 60
 			and row.current == 6 and row.allowance == 1, "Gale record: mastery 1/10, energy 60/60, channel 6, allowance 1")
 	var skills: Dictionary = a.ch.hue.skills
 	check(skills.size() == 3 and skills["1"].rank == 1 and skills["2"].rank == 1 and skills["3"].rank == 1
-			and a.ch.hue.skill_points == 0, "starting skills Dash/Gust/Wind Scythe rank 1, 0 points")
+			and g.points == 0, "starting skills Dash/Gust/Wind Scythe rank 1, 0 points")
 
 	ready()
 	var r := act(DASH, Vector2i(1, 0))
@@ -289,22 +289,24 @@ func t_pass1() -> void:
 	check(r.outcome == O.SUCCEEDED and skills["2"].prof == prof1 and gale().xp == xp1,
 			"a gust into empty air costs energy but awards nothing")
 
+	gm(a, "@hueset points gale 0")
 	r = learn(GUST)
-	check(r.reason == R.NO_POINTS, "upgrade without points: reason %d" % r.reason)
-	gm(a, "@hueset points 1")
-	r = learn(GUST)
-	check(r.reason == R.NEEDS_LEVEL and r.detail == 2, "upgrade needs level 2: %s" % summary(r))
-	gm(a, "@level 4")
-	check(a.ch.hue.skill_points == 4, "levels 2-4 grant 3 skill points (%d)" % a.ch.hue.skill_points)
+	check(r.reason == R.NO_POINTS and r.detail == 2, "rank 2 costs 2 Gale points: %s" % summary(r))
+	gm(a, "@hueset points gale 2")
 	r = learn(GUST)
 	check(r.reason == R.NEEDS_MASTERY and r.detail == 3, "upgrade needs mastery 3: %s" % summary(r))
+	var before_pts: int = gale().points
+	var granted0: int = gale().granted
 	gm(a, "@hueset mastery gale 6")
+	check(gale().points == before_pts + 6 - granted0 and gale().picks == 1,
+			"mastery milestones 2-6 grant 5 Gale points and a talent pick (%d points, %d picks)" % [gale().points, gale().picks])
 	r = learn(GUST)
 	check(r.reason == R.NEEDS_PROFICIENCY and r.detail == 50, "upgrade needs proficiency 50: %s" % summary(r))
 	gm(a, "@hueset prof 2 50")
+	var pts: int = gale().points
 	r = learn(GUST)
-	check(r.outcome == O.LEARNED and skills["2"].rank == 2 and a.ch.hue.skill_points == 3,
-			"Gust upgraded to rank 2 for one point: %s" % summary(r))
+	check(r.outcome == O.LEARNED and skills["2"].rank == 2 and gale().points == pts - 2,
+			"Gust upgraded to rank 2 for two Gale points: %s" % summary(r))
 
 	ready()
 	var energy: int = gale().energy
@@ -575,7 +577,7 @@ func t_spark() -> void:
 	check(r.reason == R.INCOMPATIBLE and r.detail == SPARK, "Dash + Spark is not a combination")
 	w.hue.set_energy(a, EMBER, 2)
 	r = act(GUST, Vector2i(1, 0), 0, 0, SPARK)
-	check(r.reason == R.NO_ENERGY and r.skill == SPARK and gale().energy == w.hue.capacity_of(gale()),
+	check(r.reason == R.NO_ENERGY and r.skill == SPARK and gale().energy == w.hue.capacity(a.ch, GALE),
 			"Ember short: names Spark, spends no Gale: %s" % summary(r))
 	a.ch.hue.skills.erase("6")
 	ready()
@@ -621,11 +623,11 @@ func t_world() -> void:
 	# Fight a hopper to the end.
 	clear_mobs()
 	var hop := hopper_at(Vector2i(17, 26))
-	var exp0: int = a.ch.exp + a.ch.level * 1000
+	var str0: int = a.ch.body.strength.xp + a.ch.body.strength.lvl * 1000
 	mark()
 	w.handle(1, {"t": "attack", "id": hop.id})
 	pump(20000)
-	check(hop.dead and a.ch.exp + a.ch.level * 1000 > exp0, "a hopper dies to basic attacks and gives experience")
+	check(hop.dead and a.ch.body.strength.xp + a.ch.body.strength.lvl * 1000 > str0, "a hopper dies to basic attacks and fighting trains Strength")
 	check(events.any(func(e): return e.t == "damage" and e.id == a.id), "it fought back")
 
 	# Death and the cozy respawn.
@@ -637,7 +639,10 @@ func t_world() -> void:
 	a.hp = 1
 	pump(5000)
 	check(events.any(func(e): return e.t == "die" and e.id == a.id), "a player can fall")
-	pump(4000)
+	for k in 40:
+		if not a.dead:
+			break
+		pump(250)
 	check(not a.dead and a.hp == a.max_hp and a.pos == w.map.spawn, "and wakes in the clearing, healed")
 	mark()
 	pump(3000)
@@ -681,10 +686,202 @@ func t_saves() -> void:
 	w.save_dir = dir
 	check(w.join(1, "Wanderer", "secret-a") == "", "after a host restart the character loads")
 	a = w.players[1]
-	var keep := ["level", "inventory", "hue"]
+	var keep := ["body", "inventory", "hue", "equipment"]
 	var same := true
 	for k in keep:
 		same = same and JSON.stringify(a.ch[k]) == JSON.stringify(snapshot[k])
 	check(same and a.pos == Vector2i(15, 22), "inventory, vessel lots, supply, hue state and position survive a restart")
 	check(a.ch.hue.supply.size() == 1 and w.hue.supply_order(a.ch, index_of(REED)) == 1, "the supply selection survives")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(dir + "/characters/wanderer.json"))
+
+
+func die_at(at: Vector2i) -> void:
+	clear_mobs()
+	warp(a, at)
+	a.safe_until = 0
+	pump()
+	w.kill(a, null)
+	for k in 40:
+		if not a.dead:
+			break
+		pump(250)
+
+
+func t_progression() -> void:
+	fresh(Vector2i(14, 20))
+	var pg: Progression = w.prog
+	check(pg.errors.is_empty(), "progression data loads %s" % [pg.errors])
+	var m := w.map
+	check(m.zone_at(Vector2i(14, 20)).band == "edge" and m.zone_at(Vector2i(10, 5)).band == "frontier"
+			and m.zone_at(Vector2i(30, 2)).band == "deep" and m.zone_at(Vector2i(40, 8)).band == "core",
+			"zones: meadow edge, terrace frontier, lookout deep, spur core")
+	check(m.concentration(Vector2i(14, 20), GALE) == 20 and m.concentration(Vector2i(40, 8), GALE) == 60
+			and m.concentration(Vector2i(14, 20), EMBER) == 0, "concentration per zone and hue")
+
+	# Regeneration follows concentration.
+	var meadow := w.hue.regen_amount(a.ch, GALE, 20)
+	var spur := w.hue.regen_amount(a.ch, GALE, 60)
+	check(meadow == 3 and spur > meadow, "Gale regenerates faster where it is concentrated (%d < %d)" % [meadow, spur])
+
+	# Dissonance: harmony, clash, and hybrid techniques.
+	gm(a, "@huegrant access ember")
+	check(pg.dissonance(a.ch, GALE) == 0 and pg.dissonance(a.ch, EMBER) == 0, "Gale and Ember harmonise")
+	var ember_cap0 := w.hue.capacity(a.ch, EMBER)
+	gm(a, "@huegrant access tide")
+	var d := pg.dissonance(a.ch, EMBER)
+	check(d == 20 and w.hue.capacity(a.ch, EMBER) == ember_cap0 * 80 / 100,
+			"Tide clashes with Ember: -%d%% capacity (%d -> %d)" % [d, ember_cap0, w.hue.capacity(a.ch, EMBER)])
+	check(pg.dissonance(a.ch, GALE) == 8, "Tide is neutral to Gale: 8%% (%d)" % pg.dissonance(a.ch, GALE))
+	gm(a, "@hueset mastery gale 20")
+	check(pg.dissonance(a.ch, GALE) < 8, "a novice hue barely weakens a master one (%d%%)" % pg.dissonance(a.ch, GALE))
+	gm(a, "@technique tide ember")
+	check(pg.dissonance(a.ch, EMBER) == 8 or pg.dissonance(a.ch, EMBER) == 0,
+			"a hybrid technique removes the Tide-Ember clash (%d%%)" % pg.dissonance(a.ch, EMBER))
+
+	# Body stats train from what you do.
+	fresh(Vector2i(14, 20))
+	pg = w.prog
+	var xp0: int = a.ch.body.speed.xp
+	w.walk_to(a, Vector2i(14, 24))
+	pump(2000)
+	var walked: int = a.ch.body.speed.xp - xp0
+	w.walk_to(a, Vector2i(14, 20))
+	pump(2000)
+	check(walked == 4 and a.ch.body.speed.xp - xp0 == 4, "new ground trains Speed; walking back over it does not (%d)" % walked)
+	gm(a, "@body speed 10")
+	check(a.step_ms == 135, "Speed 10 walks 10%% faster (%d ms a step)" % a.step_ms)
+	gm(a, "@body vitality 4")
+	check(a.max_hp == 80, "Vitality 4 adds 20 health (%d)" % a.max_hp)
+	var hop := hopper_at(Vector2i(15, 20))
+	w.stagger(hop, 60000)
+	var s0: int = a.ch.body.strength.xp
+	w.handle(1, {"t": "attack", "id": hop.id})
+	pump(3000)
+	check(a.ch.body.strength.xp > s0, "hitting things trains Strength")
+
+	# Milestones and talents.
+	var g := gale()
+	gm(a, "@hueset mastery gale 5")
+	check(g.picks == 1 and pg.talent_offers(a.ch, GALE).size() == 3, "mastery 5 offers a choice of three Gale talents")
+	var cap0 := w.hue.capacity(a.ch, GALE)
+	mark()
+	w.handle(1, {"t": "talent", "id": "gale_deep_lungs"})
+	pump()
+	check(g.talents == ["gale_deep_lungs"] and w.hue.capacity(a.ch, GALE) == cap0 * 115 / 100 and g.picks == 0,
+			"Deep Lungs: +15%% Gale capacity (%d -> %d)" % [cap0, w.hue.capacity(a.ch, GALE)])
+	check(pg.pick_talent(a.ch, "gale_tailwind") != "", "no second pick without another milestone")
+
+	# Soft caps: the zone's training limit and the personal cap.
+	var edge := m.zone_at(Vector2i(14, 20))
+	var deep := m.zone_at(Vector2i(30, 2))
+	var rec := {"mastery": 12, "cap": 15}
+	check(pg.mastery_gain(rec, edge, 80) == 10 and pg.mastery_gain(rec, deep, 80) == 80,
+			"mastery 12 trains at 1/8 rate in the meadow (limit 10) but fully on the lookout")
+	rec = {"mastery": 16, "cap": 15}
+	check(pg.mastery_gain(rec, deep, 80) == 20, "past the personal cap gains halve per level (%d)" % pg.mastery_gain(rec, deep, 80))
+
+	# Feats raise personal caps.
+	gm(a, "@huegrant skill 6 1")
+	gm(a, "@huegrant access ember")
+	var cap1: int = g.cap
+	warp(a, Vector2i(39, 8))
+	clear_mobs()
+	hopper_at(Vector2i(40, 8))
+	ready()
+	var r := act(GUST, Vector2i(1, 0), 0, 0, SPARK)
+	check(r.outcome == O.SUCCEEDED and a.ch.progress.feats.has("updraft_pyre") and g.cap == cap1 + 5 + 1,
+			"Gust + Spark on the spur: the Updraft Pyre feat and a novelty raise the Gale cap (%d -> %d)" % [cap1, g.cap])
+	clear_mobs()
+	hopper_at(Vector2i(40, 8))
+	ready()
+	act(GUST, Vector2i(1, 0), 0, 0, SPARK)
+	check(g.cap == cap1 + 6, "repeating the same thing raises nothing")
+	clear_mobs()
+	warp(a, Vector2i(14, 20))
+	hopper_at(Vector2i(15, 20))
+	ready()
+	var cap2: int = g.cap
+	act(GUST, Vector2i(1, 0))
+	check(g.cap == cap2, "novelty needs strong concentration: nothing new in the meadow")
+
+	# Equipment: instances, sockets, rarity.
+	fresh(Vector2i(14, 20))
+	pg = w.prog
+	gm(a, "@item 802 1")
+	gm(a, "@item 802 1")
+	var boots := []
+	for i in a.ch.inventory.size():
+		if lot(i).get("item") == 802:
+			boots.append(i)
+	check(boots.size() == 2, "equipment never stacks: two boots, two instances")
+	w.handle(1, {"t": "equip", "index": boots[0]})
+	pump()
+	check(a.ch.equipment.has("feet") and a.step_ms == 142, "Windrunner Boots: 5%% faster (%d ms)" % a.step_ms)
+	gm(a, "@item 851 1")
+	w.handle(1, {"t": "socket", "slot": "feet", "index": index_of(851)})
+	pump()
+	check(a.ch.equipment.feet.sockets == [851] and w.hue.channel(a.ch, GALE) == 7 and index_of(851) < 0,
+			"a Breeze Gem in the boots adds 1 Gale current (%d)" % w.hue.channel(a.ch, GALE))
+	w.handle(1, {"t": "altar", "slot": "feet"})
+	pump()
+	check(a.ch.equipment.feet.rarity == 0, "rarity can only be raised at a core or altar")
+	warp(a, Vector2i(39, 8))
+	var raised := false
+	for k in 10:
+		w.hue.set_energy(a, GALE, 999)
+		w.handle(1, {"t": "altar", "slot": "feet"})
+		pump()
+		if a.ch.equipment.feet.rarity == 1:
+			raised = true
+			break
+	check(raised and a.step_ms == 141, "on the spur the boots rise to Fine and their bonus grows (%d ms)" % a.step_ms)
+	w.handle(1, {"t": "unequip", "slot": "feet"})
+	pump()
+	check(not a.ch.equipment.has("feet") and a.step_ms == 150, "taking them off removes it all")
+
+	# Death chain: town, camp, warded node, penalties and caches.
+	fresh(Vector2i(14, 20))
+	die_at(Vector2i(20, 20))
+	check(a.pos == w.map.spawn, "falling in the meadow wakes you in town")
+	die_at(Vector2i(10, 5))
+	check(a.pos == w.map.spawn, "on the terrace without a camp: town")
+	gm(a, "@item 901 2")
+	warp(a, Vector2i(14, 20))
+	w.handle(1, {"t": "use", "index": index_of(901)})
+	pump()
+	check(a.ch.anchors.is_empty(), "no camps at the town's edge")
+	warp(a, Vector2i(10, 5))
+	w.handle(1, {"t": "use", "index": index_of(901)})
+	pump()
+	check(a.ch.anchors.has("gale-1") and a.ch.anchors["gale-1"].protection == 20, "a camp on the terrace")
+	die_at(Vector2i(15, 8))
+	check(a.pos == Vector2i(10, 5), "falling on the terrace wakes you at your camp (%s)" % a.pos)
+	gm(a, "@item 701 6")
+	var reeds := w.count_item(a, REED)
+	die_at(Vector2i(40, 8))
+	check(a.pos == w.map.spawn and a.ch.anchors.is_empty() and w.count_item(a, REED) == 0,
+			"the spur's concentration overwhelms the camp: tether snaps, vessels spill, town")
+	var cache: Being = null
+	for b in w.beings.values():
+		if b.kind == Being.CACHE:
+			cache = b
+	check(cache != null and cache.pos == Vector2i(40, 8), "the spilled vessels wait where you fell")
+	warp(a, Vector2i(40, 8))
+	pump()
+	check(w.count_item(a, REED) == reeds and not w.beings.has(cache.id), "returning recovers them")
+	gm(a, "@item 902 1")
+	warp(a, Vector2i(39, 9))
+	w.handle(1, {"t": "use", "index": index_of(902)})
+	pump()
+	die_at(Vector2i(40, 8))
+	check(a.pos == Vector2i(39, 9) and w.count_item(a, REED) == reeds,
+			"a warded camp holds against the spur: wake there, keep everything")
+	a.ch.anchors.clear()
+	gale().xp = 15
+	die_at(Vector2i(30, 2))
+	check(gale().xp == 0 and a.pos == w.map.spawn, "the lookout scatters mastery progress instead")
+
+	# Saves keep all of it.
+	var me := w.private_state(a)
+	check(me.has("body") and me.has("equipment") and me.derived[GALE].capacity > 0 and me.zone.band != "",
+			"players see body, equipment, derived hue numbers and their zone")

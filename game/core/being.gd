@@ -3,7 +3,7 @@ extends RefCounted
 ## Anything that stands on the map: a player, a monster (or plant) or an NPC.
 ## Only the host's World changes these; clients mirror what they are told.
 
-enum { PLAYER, MOB, NPC }
+enum { PLAYER, MOB, NPC, CACHE }
 
 const VEGETATION_FIRST := 1100
 const VEGETATION_LAST := 1199
@@ -57,4 +57,4 @@ func public() -> Dictionary:
 	return {"id": id, "kind": kind, "cls": cls, "key": key, "name": name,
 			"x": pos.x, "y": pos.y, "fx": facing.x, "fy": facing.y,
 			"hp": hp, "max_hp": max_hp, "dead": dead,
-			"level": ch.get("level", mob.get("level", 0))}
+			"level": mob.get("level", 0)}

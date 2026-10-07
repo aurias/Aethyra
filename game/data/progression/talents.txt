@@ -1,0 +1,9 @@
+// Talents: id|hue|min_mastery|name|modifiers|description
+// At a talent milestone the player picks one of the hue's untaken talents
+// whose min_mastery is met.
+gale_tailwind|gale|5|Tailwind|move_ms:-6%|You walk with the wind at your back.
+gale_deep_lungs|gale|5|Deep Lungs|gale.capacity:+15%|You hold more Gale.
+gale_steady_hand|gale|5|Steady Hand|gale.current:+2|You channel more Gale current safely.
+gale_cyclone|gale|10|Cyclone Heart|gale.regen:+25%|Gale returns faster.
+ember_kindling|ember|5|Kindling|ember.capacity:+15%|You hold more Ember.
+ember_hot_hands|ember|5|Hot Hands|attack:+2|Your blows carry heat.

@@ -1,0 +1,11 @@
+// Trained body stats: stat|name|activities|modifiers per level|description
+// activities: explore (new cell), deal (damage dealt), hue_deal (hue damage
+// dealt), take (damage taken),
+// harvest (plants cut), craft (things made), each with xp per unit.
+// modifiers: stat:+N (flat) or stat:+N% (percent); "*.x" means every hue.
+speed|Speed|explore:1|move_ms:-1%|Trained by exploring: you walk faster.
+vigilance|Vigilance|explore:1|notice:-2%|Trained by exploring: creatures notice you later.
+strength|Strength|deal:1|attack:+1|Trained by fighting: harder blows.
+channelling|Channelling|hue_deal:1|*.current:+2%|Trained by fighting with hues: more safe current.
+vitality|Vitality|take:2|max_hp:+5|Trained by taking hits: more health.
+dexterity|Dexterity|harvest:3,craft:10|yield:+3%|Trained by gathering and making: better yields.

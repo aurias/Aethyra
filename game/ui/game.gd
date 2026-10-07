@@ -53,6 +53,7 @@ func _ready() -> void:
 	hud = Hud.new()
 	hud.game = self
 	hud.db = db
+	hud.prog = Progression.load_from("res://data", db)
 	hud.items = items
 	hud.skill_pressed.connect(func(i): use_skill(i))
 	add_child(hud)
@@ -213,6 +214,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			hud.toggle("skills")
 		elif k == KEY_I:
 			hud.toggle("inventory")
+		elif k == KEY_C:
+			hud.toggle("character")
 		elif k == KEY_F1:
 			hud.help.visible = not hud.help.visible
 		elif k == KEY_ENTER or k == KEY_KP_ENTER:

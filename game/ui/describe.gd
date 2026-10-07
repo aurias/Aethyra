@@ -66,7 +66,7 @@ static func result(db: HueDB, items: Dictionary, r: Dictionary) -> String:
 			return "%s would push your vessels to %d%% load and they may disintegrate. Hold Shift and use it again to risk it." % [skill, r.detail]
 		R.OVERLOAD_LIMIT: return "%s would need %d%% load from your vessels: far beyond what they can take." % [skill, r.detail]
 		R.PERMANENT: return "%s is permanent; it is always in effect." % skill
-		R.NO_POINTS: return "You have no skill points left. You gain one per character level."
+		R.NO_POINTS: return "%s needs %d %s skill points. Mastery milestones in %s give them." % [skill, r.detail, hue, hue]
 		R.NEEDS_LEVEL: return "That needs character level %d." % r.detail
 		R.NEEDS_MASTERY: return "That needs %s mastery %d." % [hue, r.detail]
 		R.NEEDS_PROFICIENCY: return "That needs %d proficiency with %s: use it to good effect." % [r.detail, skill]

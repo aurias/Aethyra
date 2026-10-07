@@ -1,0 +1,6 @@
+// Authored feats: id|hue|skill|modifier|min_conc|gear_tag|cap_raise|name|hint
+// A meaningful success of `skill` (with `modifier`, 0 = any) where the hue's
+// concentration is at least min_conc, wearing gear tagged gear_tag ("-" = any),
+// raises the hue's personal cap once. Hints are shown by lore and NPCs.
+updraft_pyre|gale|2|6|50|-|5|Updraft Pyre|Where the wind runs strongest, let your gust carry fire.
+skyward_stride|gale|5|0|45|windrunner|3|Skyward Stride|Leap the lookout's ledges in boots that know the wind.

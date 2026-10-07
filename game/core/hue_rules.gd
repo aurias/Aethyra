@@ -38,11 +38,13 @@ const EFFECTS := {1: "dash", 2: "gust", 3: "scythe", 4: "featherfall", 5: "jump"
 
 var world   # World
 var db: HueDB
+var prog: Progression
 
 
-func _init(w, hue_db: HueDB) -> void:
+func _init(w, hue_db: HueDB, progression: Progression) -> void:
 	world = w
 	db = hue_db
+	prog = progression
 
 
 # --------------------------------------------------------------------------
@@ -52,8 +54,24 @@ static func record(ch: Dictionary, hue: int) -> Dictionary:
 	return ch.hue.hues[hue]
 
 
-func capacity_of(rec: Dictionary) -> int:
-	return db.mastery_row(rec.mastery).capacity if rec.access else 0
+## A hue's energy capacity, after talents, gear, body and dissonance.
+func capacity(ch: Dictionary, hue: int) -> int:
+	var r := record(ch, hue)
+	if not r.access:
+		return 0
+	return prog.stat(ch, HueDB.hue_name(hue) + ".capacity", db.mastery_row(r.mastery).capacity, 1)
+
+
+## The current a character channels safely in a hue, after modifiers.
+func channel(ch: Dictionary, hue: int) -> int:
+	return prog.stat(ch, HueDB.hue_name(hue) + ".current", db.mastery_row(record(ch, hue).mastery).current, 1)
+
+
+## Regeneration per interval: mastery row, local concentration, modifiers.
+func regen_amount(ch: Dictionary, hue: int, conc: int) -> int:
+	var pct := db.b("regen_base_pct", 50) + conc * db.b("regen_per_conc_pct", 250) / 100
+	var base: int = db.mastery_row(record(ch, hue).mastery).regen * pct / 100
+	return prog.stat(ch, HueDB.hue_name(hue) + ".regen", base)
 
 
 func learned_rank(ch: Dictionary, id: int) -> int:
@@ -157,52 +175,46 @@ func apply_grant(ch: Dictionary, g: Dictionary) -> void:
 	var st: Dictionary = ch.hue
 	st.hues = []
 	for i in HueDB.HUES.size():
-		st.hues.append({"access": false, "mastery": 0, "cap": 0, "xp": 0, "energy": 0})
+		st.hues.append({"access": false, "mastery": 0, "cap": 0, "xp": 0, "energy": 0,
+				"points": 0, "granted": 0, "picks": 0, "talents": []})
 	st.skills = {}
+	st.techniques = []
 	var r: Dictionary = st.hues[g.hue]
 	r.access = true
 	r.mastery = g.mastery
-	r.cap = g.mastery_cap
-	r.energy = capacity_of(r)
+	r.cap = maxi(g.mastery_cap, db.b("personal_cap_start", 15))
+	r.granted = g.mastery
+	r.points = g.skill_points
+	r.energy = capacity(ch, g.hue)
 	for pair in g.skills:
 		# A granted rank counts as practised up to what it required.
 		var def := db.rank(pair[0], pair[1])
 		st.skills[str(pair[0])] = {"rank": pair[1], "prof": def.req_prof if not def.is_empty() else 0}
-	st.skill_points = g.skill_points
 
 
 ## New characters start from their origin.
 func init_character(ch: Dictionary, origin := 1) -> void:
 	var g: Dictionary = db.origins.get(origin, db.origins[1])
-	ch.hue = {"version": 1, "origin": origin, "points_level": 1, "supply": []}
+	ch.hue = {"version": 2, "origin": origin, "supply": []}
 	apply_grant(ch, g)
 
 
 ## On load: repair anything the definitions no longer allow.
 func repair(ch: Dictionary) -> void:
 	var st: Dictionary = ch.hue
+	prog.ensure(ch)
 	for key in st.skills.keys():
 		var top := db.max_rank(int(key))
 		if top > 0:
 			st.skills[key].rank = mini(st.skills[key].rank, top)
-	for r in st.hues:
-		r.energy = clampi(r.energy, 0, capacity_of(r))
+	for i in st.hues.size():
+		st.hues[i].energy = clampi(st.hues[i].energy, 0, capacity(ch, i))
+		if st.hues[i].access:
+			prog.grant_milestones(ch, i)
 	for lot in ch.inventory:
 		if lot != null:
 			init_lot(lot)
 	st.supply = st.supply.filter(func(i): return not vessel_at(ch, i).is_empty())
-	level_points(ch)
-
-
-## Character level rose: award skill points not yet granted for it.
-func level_points(ch: Dictionary) -> bool:
-	var st: Dictionary = ch.hue
-	var changed := false
-	while st.points_level < ch.level and st.points_level < 255:
-		st.points_level += 1
-		st.skill_points += db.b("skill_points_per_level", 1)
-		changed = true
-	return changed
 
 
 ## Energy regeneration and activation expiry, once per regen interval.
@@ -214,8 +226,8 @@ func regen(p: Being) -> bool:
 		var r: Dictionary = p.ch.hue.hues[i]
 		if not r.access:
 			continue
-		var cap := capacity_of(r)
-		var gain: int = db.mastery_row(r.mastery).regen * db.region_pct(world.map.name, i) / 100
+		var cap := capacity(p.ch, i)
+		var gain := regen_amount(p.ch, i, world.map.concentration(p.pos, i))
 		var e := mini(clampi(r.energy + gain, 0, maxi(cap, r.energy)), cap)
 		if e != r.energy:
 			r.energy = e
@@ -230,7 +242,7 @@ func restore(p: Being, hue: int, amount: int) -> int:
 	if not r.access or amount <= 0:
 		return 0
 	var before: int = r.energy
-	r.energy = mini(r.energy + amount, capacity_of(r))
+	r.energy = mini(r.energy + amount, capacity(p.ch, hue))
 	return r.energy - before
 
 
@@ -249,17 +261,31 @@ func award_pct(p: Being, skill: int) -> int:
 	return pct
 
 
+## Mastery progress, slowed above the soft cap (the lower of where you are
+## training and your personal cap); milestones are granted as it rises.
 func add_mastery_xp(p: Being, hue: int, xp: int) -> void:
 	var r := record(p.ch, hue)
-	r.xp += xp
-	while r.mastery < r.cap and r.xp >= mastery_next(r.mastery):
-		r.xp -= mastery_next(r.mastery)
+	var top := db.b("mastery_max", 50)
+	var zone: Dictionary = world.map.zone_at(p.pos)
+	while xp > 0 and r.mastery < top:
+		var gain := prog.mastery_gain(r, zone, xp)
+		if gain <= 0:
+			break
+		var need: int = mastery_next(r.mastery) - r.xp
+		if gain < need:
+			r.xp += gain
+			break
+		# Spend what this level needed, at this level's rate.
+		xp -= need * xp / gain
+		r.xp = 0
 		r.mastery += 1
 		world.tell(p, "Your %s mastery rose to %d." % [HueDB.hue_title(hue), r.mastery])
-	# At the cap, progress stops short of the next level until the cap rises.
-	if r.mastery >= r.cap:
-		r.xp = mini(r.xp, mastery_next(r.mastery) - 1)
-	r.energy = mini(r.energy, capacity_of(r))
+	var got := prog.grant_milestones(p.ch, hue)
+	if got.points:
+		world.tell(p, "+%d %s skill point%s." % [got.points, HueDB.hue_title(hue), "" if got.points == 1 else "s"])
+	if got.picks:
+		world.tell(p, "A %s talent is ready to choose (C)." % HueDB.hue_title(hue))
+	r.energy = mini(r.energy, capacity(p.ch, hue))
 
 
 ## Award proficiency, mastery progress and experience for an action that
@@ -273,8 +299,6 @@ func award(p: Being, def: Dictionary, units: int) -> void:
 		sk.prof = mini(def.prof_cap, sk.prof + def.prof_award * units)
 	if def.mastery_award:
 		add_mastery_xp(p, def.hue, def.mastery_award * units * pct / 100)
-	if def.exp_award:
-		world.gain_exp(p, def.exp_award * units * pct / 100)
 
 
 # --------------------------------------------------------------------------
@@ -323,8 +347,9 @@ func plan_part(p: Being, part: Dictionary, activations_before: int, flags: int) 
 	# Own reserve first, then the selected stacks of this hue in order.
 	var E: int = part.E
 	var I: int = part.I
-	var own := {"index": -1, "available": h.energy, "safe": row.current, "energy": 0}
-	own.current = mini(mini(I, row.current), h.energy * I / maxi(E, 1))
+	var safe := channel(ch, part.hue)
+	var own := {"index": -1, "available": h.energy, "safe": safe, "energy": 0}
+	own.current = mini(mini(I, safe), h.energy * I / maxi(E, 1))
 	part.sources = [own]
 	var flow := flow_pct(ch, part.hue)
 	var remaining: int = I - own.current
@@ -507,7 +532,7 @@ func action(p: Being, skill: int, d: Vector2i, flags: int, request: int, target:
 			res.current = parts[k].I
 			res.channel = parts[k].get("safe_channel", 0)
 			if not res.channel:
-				res.channel = db.mastery_row(record(ch, parts[k].hue).mastery).current
+				res.channel = channel(ch, parts[k].hue)
 			return _reject(p, res, why[0], why[1])
 	res.channel = parts[0].safe_channel
 
@@ -596,6 +621,10 @@ func action(p: Being, skill: int, d: Vector2i, flags: int, request: int, target:
 		award(p, def, units)
 		if parts.size() > 1:
 			award(p, parts[1].def, mod_units)
+		# Feats: meaningful successes where the hue runs strong.
+		if units > 0:
+			for line in prog.check_feats(ch, def.hue, skill, modifier, world.map.concentration(p.pos, def.hue)):
+				world.tell(p, line)
 
 	res.outcome = Outcome.SUCCEEDED if success else Outcome.FAILED
 	res.reason = R.OK if success else R.OVERLOAD_FAILED
@@ -736,10 +765,8 @@ func learn(p: Being, skill: int) -> Dictionary:
 	var sk = ch.hue.skills.get(str(skill))
 	if not h.access:
 		return _reject(p, res, R.NO_ACCESS)
-	if ch.hue.skill_points < 1:
-		return _reject(p, res, R.NO_POINTS)
-	if ch.level < next.req_level:
-		return _reject(p, res, R.NEEDS_LEVEL, next.req_level)
+	if h.points < next.cost:
+		return _reject(p, res, R.NO_POINTS, next.cost)
 	if h.mastery < next.req_mastery:
 		return _reject(p, res, R.NEEDS_MASTERY, next.req_mastery)
 	if (sk.prof if sk else 0) < next.req_prof:
@@ -747,7 +774,7 @@ func learn(p: Being, skill: int) -> Dictionary:
 	if not sk:
 		sk = {"rank": 0, "prof": 0}
 		ch.hue.skills[str(skill)] = sk
-	ch.hue.skill_points -= 1
+	h.points -= next.cost
 	sk.rank += 1
 	res.outcome = Outcome.LEARNED
 	res.detail = sk.rank
@@ -784,9 +811,10 @@ func grant_access(p: Being, hue: int) -> bool:
 		return false
 	r.access = true
 	r.mastery = 1
-	r.cap = 10
+	r.cap = maxi(r.cap, db.b("personal_cap_start", 15))
 	r.xp = 0
-	r.energy = capacity_of(r)
+	r.granted = maxi(r.granted, 1)
+	r.energy = capacity(p.ch, hue)
 	world.private_changed(p)
 	return true
 
@@ -813,12 +841,9 @@ func apply_profile(p: Being, profile: String) -> bool:
 	if g.is_empty():
 		return false
 	apply_grant(p.ch, g)
-	p.ch.hue.points_level = maxi(g.level, 1)
 	p.ch.hue.supply = []
 	p.session.active = []
 	p.session.ready = {}
-	if g.level and p.ch.level < g.level:
-		world.set_level(p, g.level)
 	world.private_changed(p)
 	return true
 
@@ -835,7 +860,7 @@ func seed(p: Being, value: int) -> void:
 
 func set_energy(p: Being, hue: int, energy: int) -> void:
 	var r := record(p.ch, hue)
-	r.energy = clampi(energy, 0, capacity_of(r))
+	r.energy = clampi(energy, 0, capacity(p.ch, hue))
 	world.private_changed(p)
 
 
@@ -843,11 +868,12 @@ func set_mastery(p: Being, hue: int, mastery: int) -> void:
 	var r := record(p.ch, hue)
 	if not r.access:
 		r.access = true
-		r.cap = maxi(r.cap, 10)
+		r.cap = maxi(r.cap, db.b("personal_cap_start", 15))
 	r.cap = maxi(r.cap, clampi(mastery, 1, 50))
 	r.mastery = clampi(mastery, 1, r.cap)
 	r.xp = 0
-	r.energy = mini(r.energy, capacity_of(r))
+	prog.grant_milestones(p.ch, hue)
+	r.energy = mini(r.energy, capacity(p.ch, hue))
 	world.private_changed(p)
 
 

@@ -1,0 +1,14 @@
+// Hue pair relations: hue|hue|relation|dissonance_pct
+// The starter chain Tide > Verdant > Gale > Ember > Terra harmonises, with
+// Aura between Tide and Terra. Listed oppositions clash. Every pair not
+// listed is neutral (balance.conf: dissonance_neutral_pct).
+tide|verdant|harmony|0
+verdant|gale|harmony|0
+gale|ember|harmony|0
+ember|terra|harmony|0
+terra|aura|harmony|0
+aura|tide|harmony|0
+tide|ember|clash|20
+gale|terra|clash|20
+verdant|decay|clash|20
+aura|void|clash|20

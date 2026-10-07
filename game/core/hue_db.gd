@@ -114,7 +114,7 @@ func _read_skills(path: String) -> void:
 			"hue": hue_index(f[3]), "kind": KIND[f[4]],
 			"energy": int(f[5]), "current": int(f[6]),
 			"exec_ms": int(f[7]), "cooldown_ms": int(f[8]),
-			"req_level": int(f[9]), "req_mastery": int(f[10]),
+			"req_level": int(f[9]), "cost": int(f[9]), "req_mastery": int(f[10]),
 			"req_prof": int(f[11]), "prof_cap": int(f[12]),
 			"p1": int(f[13]), "p2": int(f[14]), "p3": int(f[15]),
 			"prof_award": int(f[16]), "mastery_award": int(f[17]),

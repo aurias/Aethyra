@@ -1,0 +1,6 @@
+// Mastery milestones per hue: hue|from|to|step|points|talent
+// At each mastery level m with from <= m <= to and (m - from) % step == 0
+// the hue grants `points` skill points and, if talent is 1, a talent pick.
+// "*" applies to every hue. Granted once per level.
+*|2|50|1|1|0
+*|5|50|5|0|1

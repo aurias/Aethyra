@@ -24,6 +24,7 @@ var ground := PackedStringArray()   # one row string per y
 var blocked := PackedByteArray()    # obstacles (not cliffs)
 var npcs := []                      # {key, name, x, y, dialogue}
 var spawns := []                    # {mob, x, y, rx, ry, count, respawn_ms}
+var zones := []                     # {key, name, band, rect, conc: {hue: value}, penalty}
 var errors: Array[String] = []
 
 
@@ -81,6 +82,14 @@ func _read_thing(line: String) -> void:
 	if f[0] == "npc" and f.size() == 6:
 		npcs.append({"key": f[1], "name": f[2], "x": int(f[3]), "y": int(f[4]),
 				"dialogue": f[5]})
+	elif f[0] == "zone" and f.size() == 10:
+		var conc := {}
+		for pair in f[8].split(",", false):
+			var q := pair.split(":")
+			conc[HueDB.hue_index(q[0])] = int(q[1])
+		zones.append({"key": f[1], "name": f[2], "band": f[3],
+				"rect": Rect2i(int(f[4]), int(f[5]), int(f[6]) - int(f[4]) + 1, int(f[7]) - int(f[5]) + 1),
+				"conc": conc, "penalty": f[9]})
 	elif f[0] == "spawn" and f.size() == 8:
 		spawns.append({"mob": int(f[1]), "x": int(f[2]), "y": int(f[3]),
 				"rx": int(f[4]), "ry": int(f[5]), "count": int(f[6]),
@@ -106,6 +115,19 @@ func _build(elev_rows: Array, ground_rows: Array) -> void:
 			var c := er[x]
 			elev[x + y * w] = CLIFF if c == "C" else STAIR if c == "S" else int(c)
 			blocked[x + y * w] = 1 if BLOCKING.contains(gr[x]) else 0
+
+
+## The zone a cell belongs to: the first listed zone containing it.
+func zone_at(c: Vector2i) -> Dictionary:
+	for z in zones:
+		if z.rect.has_point(c):
+			return z
+	return {"key": "", "name": title, "band": "edge", "rect": Rect2i(0, 0, w, h), "conc": {}, "penalty": "none"}
+
+
+## Concentration (0-100) of a hue at a cell.
+func concentration(c: Vector2i, hue: int) -> int:
+	return zone_at(c).conc.get(hue, 0)
 
 
 func inside(x: int, y: int) -> bool:

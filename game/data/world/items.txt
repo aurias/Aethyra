@@ -8,3 +8,12 @@
 705|Hopper Feather|misc||Light as a breath.
 706|Tempered Reed|vessel||A seasoned reed that holds a strong wind.
 710|Gale Tonic|use|heal 60,restore gale 60|Mends wounds and fills your lungs with wind.
+801|Reedweave Hood|gear||A hood woven from Breeze Reeds.
+802|Windrunner Boots|gear||Light boots that know the wind.
+803|Hopperhide Vest|gear||Stitched from Gust Hopper hide and feathers.
+811|Gale Spear|gear||A light spear with a reed-bound haft.
+851|Breeze Gem|gem||A pale gem that hums in moving air.
+852|Ember Chip|gem||A warm chip of red stone.
+853|Loam Stone|gem||A heavy, steady stone.
+901|Camp Kit|kit|anchor 20|Set a camp anchor here: wake here if you fall nearby.
+902|Warded Camp Kit|kit|anchor 60|A camp with ward stones: it holds against strong concentration.

@@ -22,11 +22,13 @@ CONTROLS
   Q        prime Spark: your next Gust carries its fire (Ember + Gale)
   Shift    hold while using a skill to accept the risk of overloading vessels
   Tab      target the nearest enemy
-  H Hues   K Skills   I Pack   Enter chat   F1 help   Esc close / leave
+  H Hues (talents)   K Skills   I Pack (wear, gems)   C Character
+  Enter chat   F1 help   Esc close / leave
 
   Developer commands (host only), typed in chat, for example:
     @hueprofile advanced   @item 701 10   @huegrant access ember
-    @huegrant skill 6 1   @hueset energy gale 999   @warp 20 10   @level 5
+    @huegrant skill 6 1   @hueset energy gale 999   @warp 20 10   @body speed 5
+    @hueset mastery gale 10   @item 802 1 (boots)   @item 901 1 (camp kit)
 
 WHERE TO GO
   Windkeeper Ama, by the arrival clearing, explains Gale and brews tonics.

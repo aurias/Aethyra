@@ -14,6 +14,7 @@ const BORDER := Color(0.78, 0.66, 0.38, 0.9)
 
 var game        # Game
 var db: HueDB
+var prog: Progression
 var items := {}
 var me := {}
 var me_at := 0.0
@@ -54,6 +55,7 @@ func _ready() -> void:
 	windows.hues = _window(root, "Hues (H)", Vector2(360, 330), Vector2(20, 150))
 	windows.skills = _window(root, "Skills (K)", Vector2(470, 470), Vector2(400, 90))
 	windows.inventory = _window(root, "Pack (I)", Vector2(430, 470), Vector2(830, 90))
+	windows.character = _window(root, "Character (C)", Vector2(400, 500), Vector2(400, 110))
 	_build_help(root)
 
 
@@ -259,7 +261,7 @@ func _build_help(root: Control) -> void:
 	l.text = """WASD / arrows: walk (and face)    Click: walk, attack, talk
 1 Dash  2 Gust  3 Wind Scythe  4 Featherfall  5 Jump  6 Spark
 Q: prime Spark to ride your next Gust    Shift + skill: accept overload risk
-Tab: target nearest enemy    H Hues   K Skills   I Pack
+Tab: target nearest enemy    H Hues   K Skills   I Pack   C Character
 Enter: chat (host: @ commands)    F1: this help    Esc: close / leave"""
 	help.add_child(l)
 
@@ -289,12 +291,11 @@ func close_windows() -> bool:
 func set_me(snapshot: Dictionary) -> void:
 	me = snapshot
 	me_at = Time.get_ticks_msec() / 1000.0
-	name_label.text = "%s   Level %d" % [me.name, me.level]
+	name_label.text = "%s   %s (%s)" % [me.name, me.zone.name, me.zone.band]
 	hp_bar.max_value = me.max_hp
 	hp_bar.value = me.hp
 	hp_bar.get_node("HpText").text = "%d / %d" % [me.hp, me.max_hp]
-	exp_bar.max_value = maxi(me.exp_next, 1)
-	exp_bar.value = me.exp
+	exp_bar.visible = false
 	_refresh_hues()
 	_refresh_hotbar()
 	refresh_windows()
@@ -305,8 +306,8 @@ func learned(id: int) -> int:
 	return sk.rank if sk else 0
 
 
-func capacity(r: Dictionary) -> int:
-	return db.mastery_row(r.mastery).capacity if r.access else 0
+func capacity(i: int) -> int:
+	return me.derived[i].get("capacity", 0) if i < me.derived.size() else 0
 
 
 func _refresh_hues() -> void:
@@ -326,20 +327,26 @@ func _refresh_hues() -> void:
 		row.add_child(l)
 		var b := bar(HUE_COLOURS[i], 12)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		b.max_value = maxi(capacity(r), 1)
+		b.max_value = maxi(capacity(i), 1)
 		b.value = r.energy
-		b.tooltip_text = "%d / %d %s energy" % [r.energy, capacity(r), HueDB.hue_title(i)]
+		b.tooltip_text = "%d / %d %s energy" % [r.energy, capacity(i), HueDB.hue_title(i)]
 		row.add_child(b)
 		var n := Label.new()
-		n.text = "%d/%d" % [r.energy, capacity(r)]
+		n.text = "%d/%d" % [r.energy, capacity(i)]
 		n.add_theme_font_size_override("font_size", 11)
 		n.custom_minimum_size = Vector2(54, 0)
 		n.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		row.add_child(n)
 		hue_box.add_child(row)
-	if me.hue.skill_points > 0:
+	var notes := []
+	for i in hues.size():
+		if hues[i].access and hues[i].get("points", 0) > 0:
+			notes.append("%d %s point%s (K)" % [hues[i].points, HueDB.hue_title(i), "" if hues[i].points == 1 else "s"])
+		if hues[i].access and hues[i].get("picks", 0) > 0:
+			notes.append("%s talent to choose (H)" % HueDB.hue_title(i))
+	if not notes.is_empty():
 		var pts := Label.new()
-		pts.text = "%d skill point%s to spend (K)" % [me.hue.skill_points, "" if me.hue.skill_points == 1 else "s"]
+		pts.text = ", ".join(notes)
 		pts.add_theme_color_override("font_color", Color("ffd98a"))
 		pts.add_theme_font_size_override("font_size", 12)
 		hue_box.add_child(pts)
@@ -493,6 +500,8 @@ func refresh_windows() -> void:
 		_fill_skills(windows.skills.body)
 	if windows.inventory.panel.visible:
 		_fill_inventory(windows.inventory.body)
+	if windows.character.panel.visible:
+		_fill_character(windows.character.body)
 
 
 func _clear(box: Control) -> void:
@@ -519,6 +528,7 @@ func _fill_hues(box: Control) -> void:
 		if not r.access:
 			continue
 		any = true
+		var d: Dictionary = me.derived[i]
 		var row := db.mastery_row(r.mastery)
 		var flow: int = row.flow_pct
 		for key in me.hue.skills:
@@ -526,22 +536,41 @@ func _fill_hues(box: Control) -> void:
 			if not def.is_empty() and def.kind == HueDB.FLOW and def.hue == i:
 				flow += def.p1
 		var active: int = me.active.filter(func(a): return a.hue == i).size()
-		var regen_pct := db.region_pct(game.map.name if game else "", i)
-		_label(box, "%s - mastery %d (cap %d)" % [HueDB.hue_title(i), r.mastery, r.cap], 15, HUE_COLOURS[i])
+		_label(box, "%s - mastery %d (personal cap %d, trains fully to %d here)" % [HueDB.hue_title(i), r.mastery, r.cap, d.soft_cap], 15, HUE_COLOURS[i])
 		var xp := bar(HUE_COLOURS[i].darkened(0.3), 6)
 		xp.max_value = maxi(r.mastery, 1) * db.b("mastery_xp_per_level", 20)
 		xp.value = r.xp
 		box.add_child(xp)
-		_label(box, "Energy %d / %d, regaining %d per second here (%d%%)\nChannel: %d current safely; vessels +%d%% flow\nAllowance: %d of %d sustained actions" %
-				[r.energy, row.capacity, row.regen * regen_pct / 100, regen_pct, row.current, flow, active, row.allowance], 12)
+		var text := "Energy %d / %d, regaining %d per second here (concentration %d)\nChannel: %d current safely; vessels +%d%% flow\nAllowance: %d of %d sustained actions   Points: %d" % [
+				r.energy, d.capacity, d.regen, d.conc, d.channel, flow, active, row.allowance, r.points]
+		if d.dissonance:
+			text += "\nDissonance: -%d%% from the other hues you hold" % d.dissonance
+		_label(box, text, 12)
+		for t in r.get("talents", []):
+			if prog.talents.has(t):
+				_label(box, "  Talent: %s - %s" % [prog.talents[t].name, prog.talents[t].description], 11, Color("cfe8c9"))
+		if r.get("picks", 0) > 0:
+			_label(box, "Choose a talent (%d to pick):" % r.picks, 12, Color("ffd98a"))
+			for id in d.offers:
+				var t: Dictionary = prog.talents[id]
+				var b := Button.new()
+				b.text = "%s: %s" % [t.name, t.description]
+				b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+				b.focus_mode = Control.FOCUS_NONE
+				b.pressed.connect(func(): Net.request({"t": "talent", "id": id}))
+				box.add_child(b)
 	if not any:
 		_label(box, "You cannot manipulate any hue yet.")
-	_label(box, "\nEnergy pays for an action; current is how much of it you can deliver at once. Vessels you mark as supply add their safe current to yours.", 11, Color("bfb59a"))
+	_label(box, "\nMastery trains fully up to the lower of your personal cap and what this place allows; beyond, each level halves the gain. Feats - new things done where a hue runs strong - raise your cap.", 11, Color("bfb59a"))
 
 
 func _fill_skills(box: Control) -> void:
 	_clear(box)
-	_label(box, "Skill points: %d   Character level: %d" % [me.hue.skill_points, me.level], 13, Color("ffd98a"))
+	var pts := []
+	for i in me.hue.hues.size():
+		if me.hue.hues[i].access:
+			pts.append("%s %d" % [HueDB.hue_title(i), me.hue.hues[i].points])
+	_label(box, "Skill points: " + ", ".join(pts) + "  (from mastery milestones)", 13, Color("ffd98a"))
 	var ids := db.skills.keys()
 	ids.sort()
 	for id in ids:
@@ -573,7 +602,7 @@ func _fill_skills(box: Control) -> void:
 			if cur.prof_cap:
 				info += "   Proficiency %d / %d" % [sk.prof, cur.prof_cap]
 		if not next.is_empty():
-			info += "\nNext rank needs: level %d, %s mastery %d, proficiency %d. %s" % [next.req_level,
+			info += "\nNext rank: %d %s points, mastery %d, proficiency %d. %s" % [next.cost,
 					HueDB.hue_title(next.hue), next.req_mastery, next.req_prof, next.description]
 		_label(box, info.strip_edges(), 11, Color("bfb59a"))
 		box.add_child(HSeparator.new())
@@ -597,7 +626,29 @@ func _fill_inventory(box: Control) -> void:
 		l.tooltip_text = it.description
 		l.mouse_filter = Control.MOUSE_FILTER_PASS
 		row.add_child(l)
-		if it.kind == "use":
+		if it.kind == "gear" or it.kind == "gem":
+			var rar: int = lot.get("rarity", 0)
+			if it.kind == "gear":
+				l.text = "%s %s" % [prog.rarities[rar].name, it.name]
+			var info: Array = prog.gear_modifiers(lot) if it.kind == "gear" else prog.gems.get(lot.item, {}).get("mods", [])
+			l.tooltip_text = "%s\n%s" % [it.description, Progression.mods_text(info)]
+			var b := Button.new()
+			b.focus_mode = Control.FOCUS_NONE
+			if it.kind == "gear":
+				b.text = "Wear"
+				b.pressed.connect(func(): Net.request({"t": "equip", "index": i}))
+			else:
+				b.text = "Set in gear"
+				var slot := ""
+				for sl in me.equipment:
+					if me.equipment[sl].sockets.has(0):
+						slot = sl
+						break
+				b.disabled = slot == ""
+				b.pressed.connect(func(): Net.request({"t": "socket", "slot": slot, "index": i}))
+			row.add_child(b)
+			_label(box, "  " + Progression.mods_text(info), 11, Color("bfb59a"))
+		if it.kind == "use" or it.kind == "kit":
 			var b := Button.new()
 			b.text = "Use"
 			b.focus_mode = Control.FOCUS_NONE
@@ -619,3 +670,62 @@ func _fill_inventory(box: Control) -> void:
 					v.safe_current, lot.condition, v.max_condition], 11, Color("bfb59a"))
 	if not any:
 		_label(box, "Your pack is empty. Wind Scythe (3) harvests grass, herbs and flowers.")
+
+
+func _fill_character(box: Control) -> void:
+	_clear(box)
+	_label(box, "Body (trained by what you do)", 14, Color("ffd98a"))
+	for st in prog.body:
+		var rec: Dictionary = me.body.get(st, {"lvl": 0, "xp": 0})
+		var row := HBoxContainer.new()
+		box.add_child(row)
+		var l := Label.new()
+		l.text = "%s %d" % [prog.body[st].name, rec.lvl]
+		l.custom_minimum_size = Vector2(120, 0)
+		l.tooltip_text = prog.body[st].description
+		l.mouse_filter = Control.MOUSE_FILTER_PASS
+		row.add_child(l)
+		var b := bar(Color("c9b458"), 8)
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.max_value = prog.body_next(rec.lvl)
+		b.value = rec.xp
+		b.tooltip_text = prog.body[st].description
+		row.add_child(b)
+	var s: Dictionary = me.stats
+	_label(box, "Health %d   Attack +%d   Defense %d   Step %d ms   Noticed at %d%%   Yield %d%%" % [
+			me.max_hp, s.attack, s.defense, s.move_ms, s.notice, s.yield], 12)
+	_label(box, "\nEquipment", 14, Color("ffd98a"))
+	for slot in Progression.SLOTS:
+		if not me.equipment.has(slot):
+			continue
+		var inst: Dictionary = me.equipment[slot]
+		var row := HBoxContainer.new()
+		box.add_child(row)
+		var l := Label.new()
+		var gems := []
+		for g in inst.sockets:
+			gems.append(items[g].name if g and items.has(g) else "empty")
+		l.text = "%s: %s %s [%s]" % [slot, prog.rarities[inst.get("rarity", 0)].name,
+				items.get(inst.item, {"name": "?"}).name, ", ".join(gems)]
+		l.tooltip_text = Progression.mods_text(prog.gear_modifiers(inst))
+		l.mouse_filter = Control.MOUSE_FILTER_PASS
+		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		row.add_child(l)
+		if me.zone.band in ["core", "altar"]:
+			var up := Button.new()
+			up.text = "Raise"
+			up.tooltip_text = "Offer this place's energy to raise its rarity (may fail)."
+			up.focus_mode = Control.FOCUS_NONE
+			up.pressed.connect(func(): Net.request({"t": "altar", "slot": slot}))
+			row.add_child(up)
+		var off := Button.new()
+		off.text = "Remove"
+		off.focus_mode = Control.FOCUS_NONE
+		off.pressed.connect(func(): Net.request({"t": "unequip", "slot": slot}))
+		row.add_child(off)
+	if me.equipment.is_empty():
+		_label(box, "Nothing worn. Ama can sew you a vest from hopper hide.", 12)
+	_label(box, "\nFeats: %s" % (", ".join(me.feats.map(func(f): return prog.feats[f].name if prog.feats.has(f) else f)) if not me.feats.is_empty() else "none yet"), 12)
+	var camp: Dictionary = me.anchors.get(game.map.name if game and game.map else "", {})
+	_label(box, "Camp: %s" % ("at %d,%d (wards %d)" % [camp.x, camp.y, camp.protection] if not camp.is_empty() else "none - use a Camp Kit beyond the meadow"), 12)
