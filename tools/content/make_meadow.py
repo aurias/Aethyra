@@ -112,7 +112,16 @@ def check(elev, ground):
     return errors
 
 
+# Zones: zone|key|name|band|x0|y0|x1|y1|concentrations|penalty
+# The first zone containing a cell wins; the last covers the whole map.
+# concentrations: hue:value (0-100); penalty applies when a death here is
+# not covered by a respawn anchor's protection (none, drop_vessels,
+# mastery, condition).
 THINGS = """\
+zone|spur|Windward Spur|core|38|5|42|10|gale:60,ember:5|drop_vessels
+zone|lookout|Lookout|deep|27|1|42|4|gale:45|mastery
+zone|terrace|Terrace|frontier|0|0|43|10|gale:30|none
+zone|meadow|Windswept Meadow|edge|0|0|43|33|gale:20|none
 npc|ama|Windkeeper Ama|14|27|ama
 npc|wren|Wren the Ridge-runner|12|8|wren
 spawn|1101|22|21|16|5|22|20000
